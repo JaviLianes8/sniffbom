@@ -4,19 +4,29 @@ build-backend = "hatchling.build"
 
 [project]
 name = "sniffbom"
-version = "0.1.0"
+version = "0.2.0"
 description = "Detect, name and strip the Unicode byte-order mark on a byte string"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
 license-files = ["LICENSE"]
 authors = [{ name = "Javier Lianes", email = "javier@lianes8studio.com" }]
-keywords = []
+keywords = ["bom", "byte-order-mark", "unicode", "encoding", "utf-8", "utf-16", "utf-32", "whatwg", "xml"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
     "Typing :: Typed",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Text Processing",
+    "Topic :: Software Development :: Libraries",
+    "Environment :: Console",
 ]
 dependencies = []
 
@@ -31,8 +41,21 @@ Changelog = "https://github.com/JaviLianes8/sniffbom/blob/main/CHANGELOG.md"
 LinkedIn = "https://www.linkedin.com/in/jlianes/"
 Funding = "https://buymeacoffee.com/jlianesglrs"
 
+[project.scripts]
+sniffbom = "sniffbom._cli:main"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/sniffbom"]
+
+[tool.hatch.build.targets.sdist]
+# Third-party reference files are fetched locally and never shipped; only their manifest is.
+exclude = [
+    ".github",
+    "IMPROVEMENTS-round*.md",
+    "tests/upstream/*.html",
+    "tests/upstream/*.txt",
+    "tests/upstream/wpt",
+]
 
 [tool.ruff]
 line-length = 100

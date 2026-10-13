@@ -1,0 +1,101 @@
+{
+  "faq-utf-bom.html": {
+    "title": "Unicode FAQ, UTF-8, UTF-16, UTF-32 and BOM",
+    "url": "https://www.unicode.org/faq/utf_bom.html",
+    "revision": "unversioned page as served on 2026-10-13",
+    "fetched": "2026-10-13",
+    "licence": "Unicode Terms of Use",
+    "size": 67907,
+    "sha256": "46b8326b26c49a322d5e798f75843dde91a43daa7666b25d431be3d3c83b43d0"
+  },
+  "uts6-scsu.html": {
+    "title": "UTS #6, A Standard Compression Scheme for Unicode, revision 4 (stabilized)",
+    "url": "https://www.unicode.org/reports/tr6/tr6-4.html",
+    "revision": "revision 4, the last one",
+    "fetched": "2026-10-13",
+    "licence": "Unicode Terms of Use",
+    "size": 72705,
+    "sha256": "6bebb271a71983e7c9e348289a01ef6a8ccb28014f951288bf64a670c2abd9ad"
+  },
+  "utn6-bocu1.html": {
+    "title": "UTN #6, BOCU-1: MIME-Compatible Unicode Compression, version 2",
+    "url": "https://www.unicode.org/notes/tn6/tn6-2.html",
+    "revision": "tn6-2, the latest on 2026-10-13",
+    "fetched": "2026-10-13",
+    "licence": "Unicode Terms of Use",
+    "size": 23421,
+    "sha256": "790610be1758e8b9e1342263a8017432f1be0cb55d041eaf6692dfb375263a4a"
+  },
+  "utr16-utf-ebcdic.html": {
+    "title": "UTR #16, UTF-EBCDIC, revision 8 (stabilized)",
+    "url": "https://www.unicode.org/reports/tr16/tr16-8.html",
+    "revision": "revision 8, the last one",
+    "fetched": "2026-10-13",
+    "licence": "Unicode Terms of Use",
+    "size": 64951,
+    "sha256": "6470689b1f2d7ba372dc18c5b4c6b48d328badf66cfd07a3af9d1d4100ffac21"
+  },
+  "rfc2152.txt": {
+    "title": "RFC 2152, UTF-7 (May 1997)",
+    "url": "https://www.rfc-editor.org/rfc/rfc2152.txt",
+    "revision": "RFC 2152 as published (RFCs are immutable)",
+    "fetched": "2026-10-13",
+    "licence": "IETF Trust Legal Provisions",
+    "size": 28065,
+    "sha256": "e6f1fb131889a885c98675777cb0e843cb97b999331c9bc6da7361219c4f13b9"
+  },
+  "whatwg-encoding.html": {
+    "title": "WHATWG Encoding Standard, Living Standard last updated 21 May 2026",
+    "url": "https://encoding.spec.whatwg.org/commit-snapshots/a985b62a9b45c17da3e17a9f0a0b4e30c34c4a8a/",
+    "revision": "commit a985b62a9b45c17da3e17a9f0a0b4e30c34c4a8a, current on 2026-10-13",
+    "fetched": "2026-10-13",
+    "licence": "CC BY 4.0",
+    "size": 610580,
+    "sha256": "a0093d9cce0f401d66d2b0883957e794aab9bdc34a260d1eb26ed30bc99005eb"
+  },
+  "xml.html": {
+    "title": "Extensible Markup Language (XML) 1.0 (Fifth Edition), W3C Recommendation 26 November 2008",
+    "url": "https://www.w3.org/TR/2008/REC-xml-20081126/",
+    "revision": "REC-xml-20081126, the current edition on 2026-10-13",
+    "fetched": "2026-10-13",
+    "licence": "W3C Document License",
+    "size": 219926,
+    "sha256": "f58a4b9e1e5b8bac13fb55c4e5c7c8c5e2c176aa45ee68e2f1ab2498511927ec"
+  },
+  "wikipedia-bom.html": {
+    "title": "Wikipedia, Byte order mark, revision 1377262082",
+    "url": "https://en.wikipedia.org/w/index.php?title=Byte_order_mark&oldid=1377262082",
+    "revision": "oldid 1377262082, the latest on 2026-10-13",
+    "fetched": "2026-10-13",
+    "licence": "CC BY-SA 4.0",
+    "size": 222300,
+    "sha256": "8e6ff733eaaba29389bb8b033f89f2fbdb862460fb3afc3dfc82df77c8010294"
+  },
+  "wpt/textdecoder-byte-order-marks.any.js": {
+    "title": "web-platform-tests encoding/textdecoder-byte-order-marks.any.js",
+    "url": "https://raw.githubusercontent.com/web-platform-tests/wpt/6c99968b9aea04bc6d5f61194a200387505d41d9/encoding/textdecoder-byte-order-marks.any.js",
+    "revision": "commit 6c99968b9aea04bc6d5f61194a200387505d41d9",
+    "fetched": "2026-10-13",
+    "licence": "BSD-3-Clause",
+    "size": 1510,
+    "sha256": "dd73fab542fe5d7fea58b5ca7bffc916c3535dd0069bc537ae5f41d4c3996361"
+  },
+  "wpt/textdecoder-ignorebom.any.js": {
+    "title": "web-platform-tests encoding/textdecoder-ignorebom.any.js",
+    "url": "https://raw.githubusercontent.com/web-platform-tests/wpt/6c99968b9aea04bc6d5f61194a200387505d41d9/encoding/textdecoder-ignorebom.any.js",
+    "revision": "commit 6c99968b9aea04bc6d5f61194a200387505d41d9",
+    "fetched": "2026-10-13",
+    "licence": "BSD-3-Clause",
+    "size": 2390,
+    "sha256": "f0ecc2649c9d12e1ea0556d3eac82d78de15d9466301ec4997add573d39bebe1"
+  },
+  "rfc2045.txt": {
+    "title": "RFC 2045, MIME Part One (November 1996)",
+    "url": "https://www.rfc-editor.org/rfc/rfc2045.txt",
+    "revision": "RFC 2045 as published (RFCs are immutable)",
+    "fetched": "2026-10-13",
+    "licence": "IETF Trust Legal Provisions",
+    "size": 72932,
+    "sha256": "9bb251635dd37fda97dcce6c08dea019432117a0f1e389051d2ecbf7b76350b0"
+  }
+}
