@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Literal
 
+from ._table import BytesLike
+
 WhatwgEncoding = Literal["UTF-8", "UTF-16BE", "UTF-16LE"]
 
 # The table of the "BOM sniff" algorithm, tried top to bottom, with the Python codec and
@@ -15,23 +17,25 @@ _SNIFF: tuple[tuple[bytes, WhatwgEncoding, str], ...] = (
 )
 
 
-def bom_sniff(data: bytes) -> WhatwgEncoding | None:
+def bom_sniff(data: BytesLike) -> WhatwgEncoding | None:
     """Return the encoding the WHATWG "BOM sniff" algorithm reads from ``data``, or ``None``.
 
     Only UTF-8 and the two UTF-16 marks count, so ``FF FE 00 00`` is ``"UTF-16LE"``.
     """
+    head = bytes(data[:3])
     for mark, name, _ in _SNIFF:
-        if data.startswith(mark):
+        if head.startswith(mark):
             return name
     return None
 
 
-def whatwg_decode(data: bytes, fallback: str = "utf-8") -> str:
+def whatwg_decode(data: BytesLike, fallback: str = "utf-8") -> str:
     """Decode ``data`` the way the WHATWG "decode" algorithm does.
 
     A mark found by `bom_sniff` wins over ``fallback`` (a Python codec name) and is
     skipped; anything malformed becomes U+FFFD instead of raising.
     """
+    data = bytes(data)
     for mark, _, codec in _SNIFF:
         if data.startswith(mark):
             return data[len(mark) :].decode(codec, "replace")

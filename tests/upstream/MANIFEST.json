@@ -88,5 +88,14 @@
     "licence": "BSD-3-Clause",
     "size": 2390,
     "sha256": "f0ecc2649c9d12e1ea0556d3eac82d78de15d9466301ec4997add573d39bebe1"
+  },
+  "rfc2045.txt": {
+    "title": "RFC 2045, MIME Part One (November 1996)",
+    "url": "https://www.rfc-editor.org/rfc/rfc2045.txt",
+    "revision": "RFC 2045 as published (RFCs are immutable)",
+    "fetched": "2026-10-13",
+    "licence": "IETF Trust Legal Provisions",
+    "size": 72932,
+    "sha256": "9bb251635dd37fda97dcce6c08dea019432117a0f1e389051d2ecbf7b76350b0"
   }
 }

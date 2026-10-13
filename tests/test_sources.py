@@ -11,6 +11,7 @@ import pytest
 from conftest import hex_bytes, page_text, read_upstream
 
 from sniffbom import ENCODINGS, XmlGuess, bom_sniff, detect, whatwg_decode, xml_autodetect
+from sniffbom._utf7 import _BASE64
 from sniffbom._whatwg import _SNIFF
 from sniffbom._xml import _WITH_MARK, _WITHOUT_MARK
 
@@ -92,10 +93,24 @@ def test_gb18030_mark_is_the_codec_form_of_u_feff() -> None:
     assert detect("\ufeff".encode("gb18030")).encoding == "gb18030"  # type: ignore[union-attr]
 
 
-def test_utf7_alphabet_is_the_one_rfc_2152_names() -> None:
-    rfc = read_upstream("rfc2152.txt")
-    assert "Modified Base64" in rfc and "RFC 2045" in rfc
-    assert detect("\ufeff".encode("utf-7")).encoding == "utf-7"  # type: ignore[union-attr]
+def test_utf7_marks_follow_from_the_rfc_2045_alphabet() -> None:
+    rfc2152 = read_upstream("rfc2152.txt")
+    assert "Modified Base64" in rfc2152 and "RFC 2045" in rfc2152
+    table = read_upstream("rfc2045.txt").split("Table 1: The Base64 Alphabet")[1][:1200]
+    found = re.findall(r"(\d+) ([A-Za-z0-9+/])(?=\s)", table)
+    pairs = sorted((int(value), char) for value, char in found)
+    assert [value for value, _ in pairs] == list(range(64))
+    alphabet = "".join(char for _, char in pairs).encode()
+    assert alphabet == _BASE64
+    # U+FEFF is 16 bits: two whole characters and the top four bits of a third, whose
+    # low two bits belong to the next character. That gives exactly four marks.
+    bits = f"{0xFEFF:016b}"
+    stem = bytes(alphabet[int(bits[i : i + 6], 2)] for i in (0, 6))
+    fourth = {alphabet[int(bits[12:] + low, 2)] for low in ("00", "01", "10", "11")}
+    assert b"+" + stem == b"+/v" and fourth == set(b"89+/")
+    for byte in range(256):
+        info = detect(b"+/v" + bytes([byte]) + b"x")
+        assert (info is not None and info.encoding == "utf-7") == (byte in fourth)
 
 
 def test_the_whatwg_bom_sniff_table() -> None:

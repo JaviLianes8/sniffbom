@@ -23,7 +23,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
-- `strip` removes a UTF-7 mark exactly, re-encoding the rest of its base64 run.
+- `strip` removes a UTF-7 mark exactly, re-encoding the rest of its base64 run, and
+  leaves a malformed run as it is.
+- Every function accepts `bytearray` and `memoryview` as well as `bytes`.
 
 ## [0.1.0]
 

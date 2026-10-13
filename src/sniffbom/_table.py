@@ -4,6 +4,10 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass
+from typing import TypeAlias
+
+# Anything with the buffer protocol a caller is likely to hold.
+BytesLike: TypeAlias = bytes | bytearray | memoryview
 
 # Ordered longest first on purpose: a UTF-32-LE mark (FF FE 00 00) begins with the
 # UTF-16-LE mark (FF FE), so the four-byte marks must be tested before the two-byte ones.
@@ -26,6 +30,7 @@ _MARKS: tuple[tuple[bytes, str, str | None], ...] = (
     (b"\xfe\xff", "utf-16-be", "utf-16-be"),
 )
 
+LONGEST = max(len(mark) for mark, _, _ in _MARKS)
 _CODECS: dict[str, str | None] = {name: codec for _, name, codec in _MARKS}
 
 ENCODINGS: tuple[str, ...] = tuple(dict.fromkeys(name for _, name, _ in _MARKS))
@@ -62,23 +67,25 @@ def _marks(among: Iterable[str] | None) -> tuple[tuple[bytes, str, str | None], 
     return tuple(entry for entry in _MARKS if entry[1] in wanted)
 
 
-def detect(data: bytes, *, among: Iterable[str] | None = None) -> BomInfo | None:
+def detect(data: BytesLike, *, among: Iterable[str] | None = None) -> BomInfo | None:
     """Return the byte-order mark at the start of ``data``, or ``None`` if there is none.
 
     ``among`` limits the search to some names of `ENCODINGS`; pass
     ``("utf-8", "utf-16-le", "utf-16-be")`` to read ``FF FE 00 00`` as UTF-16LE followed
     by NUL, the way the WHATWG Encoding Standard does, instead of as UTF-32LE.
     """
+    head = bytes(data[:LONGEST])
     for mark, encoding, _ in _marks(among):
-        if data.startswith(mark):
+        if head.startswith(mark):
             return BomInfo(encoding=encoding, length=len(mark))
     return None
 
 
-def needs_more(data: bytes, *, among: Iterable[str] | None = None) -> bool:
+def needs_more(data: BytesLike, *, among: Iterable[str] | None = None) -> bool:
     """Return whether more bytes after ``data`` could change what `detect` returns.
 
     ``FF FE`` needs more (it may become UTF-32LE), ``FF FE 41`` does not. A stream reader
     keeps reading until this is false or the stream ends, then calls `detect`.
     """
-    return any(len(data) < len(mark) and mark.startswith(data) for mark, _, _ in _marks(among))
+    head = bytes(data[:LONGEST])
+    return any(len(head) < len(mark) and mark.startswith(head) for mark, _, _ in _marks(among))

@@ -3,7 +3,8 @@
 Detect, name and strip the Unicode byte-order mark on a byte string: every signature in
 use (UTF-8, UTF-16 and UTF-32 in both orders, UTF-7, UTF-1, UTF-EBCDIC, SCSU, BOCU-1 and
 GB18030), streams and partial reads, the WHATWG decode rule and XML entity autodetection.
-Zero dependencies, fully typed.
+Zero dependencies, fully typed; every function takes `bytes`, `bytearray` or
+`memoryview`.
 
 ## Install
 
@@ -93,7 +94,9 @@ print(stream.read())
 
 `needs_more` says whether more bytes could change the answer (`FF FE` may still become a
 UTF-32LE mark). `text_stream` reads at most five bytes to decide, never seeks, and
-returns a text stream with the mark consumed, so it works on pipes and sockets.
+returns a text stream with the mark consumed, so it works on pipes and on sockets through
+`sock.makefile("rb")`. A non-blocking stream that has no data before the mark is decided
+raises `BlockingIOError` rather than guessing.
 
 ### XML entities
 
@@ -122,6 +125,9 @@ sniffbom --among utf-8 FILE   # only look for some marks
 ```
 
 Exit status: 0 when done, 1 when `--check` finds a mark, 2 on a usage or read error.
+`--strip` writes the new content next to the file and swaps it in (following a symlink to
+its target, keeping the mode); a malformed UTF-7 run it cannot shorten exactly is left as
+it is. When stdin is stripped to stdout, the report goes to stderr.
 
 ## API
 

@@ -13,7 +13,7 @@ Progress:
 - [x] Docs and packaging: README, CHANGELOG, metadata, sdist contents
 - [x] Gates: ruff format, ruff check, mypy --strict, pytest
 - [x] Mutation run: removing guarded logic makes the suite fail
-- [ ] Independent review findings fixed with regression tests
+- [x] Independent review findings fixed with regression tests
 - [ ] Pull request opened, guard clean
 
 ## Starting point
@@ -107,3 +107,24 @@ WHATWG rows and replacement, Appendix F rows, command line exit codes, rewrite a
 parsing): all 43 make the suite fail, with the reference files fetched. The run writes no
 bytecode, purges `__pycache__` before each mutant, treats a hang as a failure, and checks
 that the unmutated suite is green before and after.
+
+## Independent review
+
+Fixed, each with a regression test in `tests/test_review_fixes.py` or next to the code
+it covers:
+
+- `text_stream` treated a non-blocking `None` read as the end of the stream and could
+  decide the mark on a partial head; it now raises `BlockingIOError`.
+- `strip` dropped a UTF-7 run with six or more spare zero bits, which the codec rejects;
+  such a run is now left as it is.
+- `--strip -` mixed the stripped bytes and the report on stdout; the report now goes to
+  stderr whenever stdin is stripped.
+- `--strip` on a read-only file left a temporary file behind on Windows, and replaced a
+  symlink with a regular file; the mode is applied after the swap and symlinks are
+  followed.
+- `--strip` reported and rewrote a malformed UTF-7 file it could not change; directories
+  were reported as a permission error; `--among "utf-8,"` failed.
+- Functions accepted only `bytes`; `bytearray` and `memoryview` now work and type-check.
+- The UTF-7 alphabet test only looked for two phrases; it now reads the base64 table of
+  RFC 2045 and derives the four UTF-7 marks from it.
+- Docs: sockets need `makefile("rb")`; why UCS-4 without a mark has no codec.

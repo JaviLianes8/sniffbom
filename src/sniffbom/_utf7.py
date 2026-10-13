@@ -9,15 +9,16 @@ def strip_utf7(data: bytes) -> bytes:
     """Return ``data`` (which starts with a UTF-7 mark) without the encoded U+FEFF.
 
     The mark is the first 16 bits of a modified base64 run (RFC 2152), so the rest of
-    the run is re-encoded from bit 16 on. A run whose trailing bits are not zero is
-    malformed and cannot be shortened exactly: it is returned unchanged.
+    the run is re-encoded from bit 16 on. A run that leaves six or more bits, or any
+    non-zero bit, after its last whole character is malformed and cannot be shortened
+    exactly: it is returned unchanged.
     """
     end = 1
     while end < len(data) and data[end] in _BASE64:
         end += 1
     bits = "".join(f"{_BASE64.index(byte):06b}" for byte in data[1:end])
     whole = len(bits) - len(bits) % 16
-    if "1" in bits[whole:]:
+    if len(bits) - whole >= 6 or "1" in bits[whole:]:
         return data
     rest = bits[16:whole]
     tail = data[end:]

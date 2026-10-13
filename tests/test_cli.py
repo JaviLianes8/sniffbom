@@ -82,8 +82,8 @@ def test_strip_keeps_the_file_mode(files: dict[str, Path]) -> None:
 def test_json_report(files: dict[str, Path], capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["--json", str(files["wide"]), str(files["plain"])]) == 0
     assert json.loads(capsys.readouterr().out) == [
-        {"path": str(files["wide"]), "encoding": "utf-16-le", "length": 2},
-        {"path": str(files["plain"]), "encoding": None, "length": 0},
+        {"path": str(files["wide"]), "encoding": "utf-16-le", "length": 2, "stripped": False},
+        {"path": str(files["plain"]), "encoding": None, "length": 0, "stripped": False},
     ]
 
 
@@ -128,8 +128,9 @@ def test_stdin_is_named(
 
 
 def test_check_and_strip_are_exclusive(capsys: pytest.CaptureFixture[str]) -> None:
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit) as caught:
         main(["--check", "--strip", "x"])
+    assert caught.value.code == 2
     capsys.readouterr()
 
 

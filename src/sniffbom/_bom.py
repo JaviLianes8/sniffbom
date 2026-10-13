@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
-from ._table import BomInfo, detect
+from ._table import BomInfo, BytesLike, detect
 from ._utf7 import strip_utf7
 
 
@@ -23,11 +23,12 @@ def codec_for(info: BomInfo) -> str:
     return codec
 
 
-def strip(data: bytes, *, among: Iterable[str] | None = None) -> bytes:
+def strip(data: BytesLike, *, among: Iterable[str] | None = None) -> bytes:
     """Return ``data`` without its leading byte-order mark, unchanged if it has none.
 
     Only one mark is removed. ``among`` limits which marks count, as in `detect`.
     """
+    data = bytes(data)
     info = detect(data, among=among)
     if info is None:
         return data
@@ -37,7 +38,7 @@ def strip(data: bytes, *, among: Iterable[str] | None = None) -> bytes:
 
 
 def decode(
-    data: bytes,
+    data: BytesLike,
     default: str = "utf-8",
     *,
     errors: str = "strict",
@@ -49,6 +50,7 @@ def decode(
     U+FEFF. ``errors`` is passed to the codec. Raises `UnsupportedBomError` when the mark
     names an encoding Python cannot decode.
     """
+    data = bytes(data)
     info = detect(data, among=among)
     if info is None:
         return data.decode(default, errors)

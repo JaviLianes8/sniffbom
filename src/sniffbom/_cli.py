@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import shutil
 import sys
 import tempfile
 from collections.abc import Sequence
@@ -35,16 +34,28 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def _rewrite(path: Path, data: bytes) -> None:
-    # Write next to the file and swap it in, so a failure never leaves half a file.
-    handle, name = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.")
+    # Write next to the real file (through any symlink) and swap it in, so a failure never
+    # leaves half a file. The mode is copied after the swap: a read-only temporary file
+    # could not be replaced or removed on Windows.
+    target = path.resolve()
+    handle, name = tempfile.mkstemp(dir=target.parent, prefix=f".{target.name}.")
+    mode = target.stat().st_mode
     try:
         with os.fdopen(handle, "wb") as out:
             out.write(data)
-        shutil.copymode(path, name)
-        os.replace(name, path)
+        os.replace(name, target)
     except BaseException:
         Path(name).unlink(missing_ok=True)
         raise
+    os.chmod(target, mode)
+
+
+def _read(path: str) -> bytes:
+    if path == "-":
+        return sys.stdin.buffer.read()
+    if Path(path).is_dir():
+        raise IsADirectoryError(21, "is a directory")
+    return Path(path).read_bytes()
 
 
 def _line(path: str, info: BomInfo | None, stripped: bool) -> str:
@@ -58,22 +69,31 @@ def main(argv: Sequence[str] | None = None) -> int:
     """Run the command line and return its exit status."""
     parser = _parser()
     args = parser.parse_args(argv)
-    among = None if args.among is None else [name.strip() for name in args.among.split(",")]
+    among = None
+    if args.among is not None:
+        among = [name.strip() for name in args.among.split(",") if name.strip()]
     try:
         detect(b"", among=among)
     except ValueError as error:
         parser.error(str(error))
+    # Stripped stdin owns stdout, so the report goes to stderr instead.
+    out = sys.stderr if args.strip and "-" in args.paths else sys.stdout
     report: list[dict[str, object]] = []
     found = failed = False
     for path in args.paths:
         try:
-            data = sys.stdin.buffer.read() if path == "-" else Path(path).read_bytes()
+            data = _read(path)
             info = detect(data, among=among)
-            if args.strip and path == "-":
-                sys.stdout.buffer.write(strip(data, among=among))
-                continue
-            if args.strip and info is not None:
-                _rewrite(Path(path), strip(data, among=among))
+            stripped = False
+            if args.strip:
+                # A malformed UTF-7 run cannot be shortened exactly and stays as it is.
+                new = strip(data, among=among)
+                stripped = new != data
+                if path == "-":
+                    sys.stdout.buffer.write(new)
+                    sys.stdout.buffer.flush()
+                elif stripped:
+                    _rewrite(Path(path), new)
         except OSError as error:
             print(f"sniffbom: {path}: {error.strerror or error}", file=sys.stderr)
             failed = True
@@ -82,11 +102,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.json:
             encoding = None if info is None else info.encoding
             length = 0 if info is None else info.length
-            report.append({"path": path, "encoding": encoding, "length": length})
+            report.append(
+                {"path": path, "encoding": encoding, "length": length, "stripped": stripped}
+            )
         else:
-            print(_line(path, info, args.strip and info is not None))
+            print(_line(path, info, stripped), file=out)
     if args.json:
-        print(json.dumps(report))
+        print(json.dumps(report), file=out)
     if failed:
         return 2
     return 1 if args.check and found else 0

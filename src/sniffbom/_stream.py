@@ -7,7 +7,7 @@ from collections.abc import Iterable
 from typing import Protocol
 
 from ._bom import codec_for
-from ._table import detect, needs_more
+from ._table import LONGEST, detect, needs_more
 
 
 class _Reader(Protocol):
@@ -57,14 +57,18 @@ def text_stream(
     """Wrap a binary stream as text, decoded as its byte-order mark says, else ``default``.
 
     Only the few bytes needed to decide are read up front and the stream is never
-    seeked, so pipes and sockets work. The mark is consumed. Closing the result closes
-    ``binary``. Raises `UnsupportedBomError` when the mark names an encoding Python
-    cannot decode.
+    seeked, so pipes and sockets (through ``sock.makefile("rb")``) work. The mark is
+    consumed. Closing the result closes ``binary``. Raises `UnsupportedBomError` when the
+    mark names an encoding Python cannot decode (the bytes read so far are then gone from
+    ``binary``), and `BlockingIOError` when a non-blocking stream has no data yet before
+    the mark is decided.
     """
     marks = None if among is None else tuple(among)
     head = b""
     while needs_more(head, among=marks):
-        chunk = binary.read(5 - len(head))
+        chunk = binary.read(LONGEST - len(head))
+        if chunk is None:
+            raise BlockingIOError("the stream has no data yet; the mark is still undecided")
         if not chunk:
             break
         head += chunk

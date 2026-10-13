@@ -101,7 +101,8 @@ def test_installed_wheel_end_to_end(tmp_path: Path) -> None:
     for command in commands:
         shown = _run(*command, "--json", "-", cwd=work, stdin=b"\xff\xfeh\x00")
         assert shown.returncode == 0, shown.stderr
-        assert json.loads(shown.stdout) == [{"path": "-", "encoding": "utf-16-le", "length": 2}]
+        expected = {"path": "-", "encoding": "utf-16-le", "length": 2, "stripped": False}
+        assert json.loads(shown.stdout) == [expected]
         checked = _run(*command, "--check", marked, cwd=work)
         assert checked.returncode == 1 and b"utf-8 (3 bytes)" in checked.stdout
     stripped = _run(commands[-1][0], *commands[-1][1:], "--strip", marked, cwd=work)

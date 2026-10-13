@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
+from ._table import BytesLike
+
 XmlFamily = Literal[
     "ucs-4-1234",
     "ucs-4-4321",
@@ -25,7 +27,9 @@ class XmlGuess:
 
     ``family`` names the row of Appendix F.1 that matched, ``bom_length`` is the length of
     the mark (0 without one) and ``codec`` is the Python codec when the family alone
-    decides it, ``None`` when the encoding declaration must be read to choose.
+    decides it, ``None`` when the encoding declaration must be read to choose. That is why
+    UCS-4 without a mark has no codec: Appendix F says the declaration picks between UCS-4
+    and other 32-bit encodings, while a mark is U+FEFF in UTF-32 itself.
     """
 
     family: XmlFamily
@@ -56,16 +60,17 @@ _WITHOUT_MARK: tuple[tuple[bytes, XmlFamily], ...] = (
 )
 
 
-def xml_autodetect(data: bytes) -> XmlGuess:
+def xml_autodetect(data: BytesLike) -> XmlGuess:
     """Name the encoding family of an XML entity from its first four bytes.
 
     Input shorter than four bytes is taken as the whole entity. Anything that matches no
     row is ``"other"``: UTF-8 without a declaration, unless the entity is mislabelled.
     """
+    head = bytes(data[:4])
     for mark, family, codec in _WITH_MARK:
-        if data.startswith(mark):
+        if head.startswith(mark):
             return XmlGuess(family, len(mark), codec)
     for prefix, family in _WITHOUT_MARK:
-        if data.startswith(prefix):
+        if head.startswith(prefix):
             return XmlGuess(family, 0, None)
     return XmlGuess("other", 0, "utf-8")
