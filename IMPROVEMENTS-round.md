@@ -101,12 +101,14 @@ Unicode FAQ table. Probed against the sources below:
 
 ## Mutation run
 
-43 hand-written mutants over every module (table rows and marks, `among` checks, the
-`needs_more` bound, the UTF-7 re-encoding, codec errors, stream head handling and close,
-WHATWG rows and replacement, Appendix F rows, command line exit codes, rewrite and
-parsing): all 43 make the suite fail, with the reference files fetched. The run writes no
-bytecode, purges `__pycache__` before each mutant, treats a hang as a failure, and checks
-that the unmutated suite is green before and after.
+53 hand-written mutants over every module (table rows and marks, `among` checks, the
+`needs_more` bound, the UTF-7 re-encoding and its malformed-run guard, codec errors,
+bytes-like input, stream head handling, stalls and close, WHATWG rows and replacement,
+Appendix F rows, command line exit codes, rewrite, symlinks, cleanup, report stream and
+parsing): all 53 make the suite fail, with the reference files fetched, on the final code
+after the review fixes. The run writes no bytecode, purges `__pycache__` before each
+mutant, treats a hang as a failure, and checks that the unmutated suite is green before
+and after.
 
 ## Independent review
 
