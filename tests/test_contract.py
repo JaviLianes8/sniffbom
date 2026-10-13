@@ -1,10 +1,28 @@
+import dataclasses
 import importlib.resources
+
+import pytest
 
 import sniffbom
 
 # The public API. Add every exported name here as the library grows; this list is the
 # contract and the test below fails if the module and this list disagree.
-PUBLIC_API: list[str] = ["BomInfo", "decode", "detect", "strip"]
+PUBLIC_API: list[str] = [
+    "ENCODINGS",
+    "BomInfo",
+    "UnsupportedBomError",
+    "WhatwgEncoding",
+    "XmlFamily",
+    "XmlGuess",
+    "bom_sniff",
+    "decode",
+    "detect",
+    "needs_more",
+    "strip",
+    "text_stream",
+    "whatwg_decode",
+    "xml_autodetect",
+]
 
 
 def test_all_lists_exactly_the_public_api() -> None:
@@ -24,3 +42,13 @@ def test_version_is_a_three_part_string() -> None:
 
 def test_the_package_ships_type_information() -> None:
     assert importlib.resources.files("sniffbom").joinpath("py.typed").is_file()
+
+
+def test_results_are_frozen() -> None:
+    for value in (sniffbom.BomInfo("utf-8", 3), sniffbom.xml_autodetect(b"")):
+        with pytest.raises(dataclasses.FrozenInstanceError):
+            value.codec = "x"  # type: ignore[misc]
+
+
+def test_the_error_is_a_lookup_error() -> None:
+    assert issubclass(sniffbom.UnsupportedBomError, LookupError)

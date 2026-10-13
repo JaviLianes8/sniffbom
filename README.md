@@ -18,7 +18,7 @@ raw = b"\xef\xbb\xbfhello"
 info = detect(raw)
 print(info.encoding, info.length)  # utf-8 3
 
-print(strip(raw))   # b'hello'
+print(strip(raw))  # b'hello'
 print(decode(raw))  # 'hello'
 
 detect(b"plain text")  # None

@@ -3,11 +3,11 @@
 Progress:
 - [x] Brainstorm ranked improvements (this file)
 - [x] Pin the ground truth: Unicode BOM FAQ, UTS #6, UTN #6, UTR #16, RFC 2152, WHATWG Encoding, XML 1.0 Appendix F, web-platform-tests
-- [ ] Full signature table with codecs, `among` filter and the UTF-16LE / UTF-32LE rule
-- [ ] UTF-7 marks: detection, exact stripping, decoding
-- [ ] Streams and partial reads: `needs_more`, `text_stream`
-- [ ] WHATWG `bom_sniff` and `whatwg_decode`
-- [ ] XML 1.0 Appendix F `xml_autodetect`
+- [x] Full signature table with codecs, `among` filter and the UTF-16LE / UTF-32LE rule
+- [x] UTF-7 marks: detection, exact stripping, decoding
+- [x] Streams and partial reads: `needs_more`, `text_stream`
+- [x] WHATWG `bom_sniff` and `whatwg_decode`
+- [x] XML 1.0 Appendix F `xml_autodetect`
 - [ ] Command line
 - [ ] Contracts: pinned sources, web-platform-tests cases, README examples, installed wheel
 - [ ] Docs and packaging: README, CHANGELOG, metadata, sdist contents
@@ -65,7 +65,7 @@ Unicode FAQ table. Probed against the sources below:
    `BomInfo` keeps its two fields and gains `codec`. `decode` reads a mark through its
    codec and raises `UnsupportedBomError` (a `LookupError`) for a scheme with no codec,
    instead of a confusing `UnicodeDecodeError`. `errors` is passed through, and a mark is
-   also dropped when it comes from the `default` codec itself.
+   kept as U+FEFF only when it is a second mark.
 2. **The UTF-16LE / UTF-32LE rule, made explicit.** `among=` restricts the table to some
    encodings, so `among=("utf-8", "utf-16-le", "utf-16-be")` gives the WHATWG reading of
    `FF FE 00 00` and `among=("utf-16-le",)` strips only that mark, like a `TextDecoder`.
