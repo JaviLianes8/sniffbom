@@ -65,7 +65,7 @@ def test_needs_more_honours_among() -> None:
 @pytest.mark.parametrize("step", [1, 2, 3, 64])
 def test_text_stream_consumes_the_mark(encoding: str, step: int) -> None:
     text = "caf\xe9\nline \U0001f600\n"
-    with text_stream(Trickle(("﻿" + text).encode(encoding), step)) as stream:
+    with text_stream(Trickle(("\ufeff" + text).encode(encoding), step)) as stream:
         assert stream.read() == text
 
 
@@ -86,13 +86,13 @@ def test_text_stream_short_stream_is_fine() -> None:
 
 
 def test_text_stream_keeps_a_second_mark() -> None:
-    assert text_stream(io.BytesIO(codecs.BOM_UTF8 * 2)).read() == "﻿"
+    assert text_stream(io.BytesIO(codecs.BOM_UTF8 * 2)).read() == "\ufeff"
 
 
 def test_text_stream_passes_errors_and_newline() -> None:
     data = codecs.BOM_UTF8 + b"a\xff\r\nb"
     stream = text_stream(io.BytesIO(data), errors="replace", newline="")
-    assert stream.read() == "a�\r\nb"
+    assert stream.read() == "a\ufffd\r\nb"
 
 
 def test_text_stream_honours_among() -> None:

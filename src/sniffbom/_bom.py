@@ -54,4 +54,4 @@ def decode(
         return data.decode(default, errors)
     # Decoding the mark with the rest keeps UTF-7 exact, where it shares a byte.
     text = data.decode(codec_for(info), errors)
-    return text[1:] if text.startswith("﻿") else text
+    return text[1:] if text.startswith("\ufeff") else text

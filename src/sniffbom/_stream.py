@@ -4,16 +4,24 @@ from __future__ import annotations
 
 import io
 from collections.abc import Iterable
-from typing import IO
+from typing import Protocol
 
 from ._bom import codec_for
 from ._table import detect, needs_more
 
 
+class _Reader(Protocol):
+    """Anything with a blocking ``read(size)`` and ``close()``: files, pipes, sockets."""
+
+    def read(self, size: int = ..., /) -> bytes | None: ...
+
+    def close(self) -> None: ...
+
+
 class _Prefixed(io.RawIOBase):
     """A raw reader that serves the already read ``head`` and then the inner stream."""
 
-    def __init__(self, head: bytes, inner: IO[bytes]) -> None:
+    def __init__(self, head: bytes, inner: _Reader) -> None:
         self._head = head
         self._inner = inner
 
@@ -39,7 +47,7 @@ class _Prefixed(io.RawIOBase):
 
 
 def text_stream(
-    binary: IO[bytes],
+    binary: _Reader,
     default: str = "utf-8",
     *,
     errors: str = "strict",

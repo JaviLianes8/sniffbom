@@ -11,14 +11,14 @@ SAMPLES = [
     "\t",
     "\n",
     "\xe9",
-    "中",
-    "耀",
-    "쀀",
-    "￿",
+    "\u4e2d",
+    "\u8000",
+    "\uc000",
+    "\uffff",
     "\U0001f600",
     "ab",
     "\xe9\xe9",
-    "\xe9a中-",
+    "\xe9a\u4e2d-",
     "+",
     "+-",
     "\U0001f600x\U0001f600",
@@ -27,7 +27,7 @@ SAMPLES = [
 
 
 def _marked(text: str) -> bytes:
-    return ("﻿" + text).encode("utf-7")
+    return ("\ufeff" + text).encode("utf-7")
 
 
 @pytest.mark.parametrize("text", SAMPLES)
@@ -40,7 +40,7 @@ def test_strip_keeps_the_text_after_the_mark(text: str) -> None:
 
 
 @pytest.mark.parametrize(
-    ("text", "fourth"), [("A", b"8"), ("中", b"9"), ("耀", b"+"), ("쀀", b"/")]
+    ("text", "fourth"), [("A", b"8"), ("\u4e2d", b"9"), ("\u8000", b"+"), ("\uc000", b"/")]
 )
 def test_the_fourth_byte_follows_the_next_character(text: str, fourth: bytes) -> None:
     assert _marked(text)[:4] == b"+/v" + fourth

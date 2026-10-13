@@ -89,13 +89,13 @@ def test_the_wikipedia_table_covers_every_encoding() -> None:
 
 def test_gb18030_mark_is_the_codec_form_of_u_feff() -> None:
     # Second, independent source for the Wikipedia value: the Python codec itself.
-    assert detect("﻿".encode("gb18030")).encoding == "gb18030"  # type: ignore[union-attr]
+    assert detect("\ufeff".encode("gb18030")).encoding == "gb18030"  # type: ignore[union-attr]
 
 
 def test_utf7_alphabet_is_the_one_rfc_2152_names() -> None:
     rfc = read_upstream("rfc2152.txt")
     assert "Modified Base64" in rfc and "RFC 2045" in rfc
-    assert detect("﻿".encode("utf-7")).encoding == "utf-7"  # type: ignore[union-attr]
+    assert detect("\ufeff".encode("utf-7")).encoding == "utf-7"  # type: ignore[union-attr]
 
 
 def test_the_whatwg_bom_sniff_table() -> None:
@@ -113,8 +113,8 @@ def test_the_whatwg_decode_algorithm() -> None:
         r"Read three bytes from ioQueue , if BOMEncoding is UTF-8 ; otherwise read two", section
     )
     assert '" replacement "' in section
-    assert whatwg_decode(b"\xef\xbb\xbf\xef\xbb\xbf") == "﻿"
-    assert whatwg_decode(b"\xff\xfe\xff\xfe") == "﻿"
+    assert whatwg_decode(b"\xef\xbb\xbf\xef\xbb\xbf") == "\ufeff"
+    assert whatwg_decode(b"\xff\xfe\xff\xfe") == "\ufeff"
 
 
 XML_WITH_MARK = ["1234", "4321", "2143", "3412", "UTF-16, big", "UTF-16, little", "UTF-8"]

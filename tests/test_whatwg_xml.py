@@ -36,7 +36,7 @@ def test_whatwg_decode_uses_the_fallback_without_a_mark() -> None:
 
 
 def test_whatwg_decode_skips_exactly_one_mark() -> None:
-    assert whatwg_decode(b"\xef\xbb\xbf\xef\xbb\xbfx") == "﻿x"
+    assert whatwg_decode(b"\xef\xbb\xbf\xef\xbb\xbfx") == "\ufeffx"
 
 
 def test_whatwg_decode_reads_ff_fe_00_00_as_utf16_le_nul() -> None:
@@ -46,10 +46,10 @@ def test_whatwg_decode_reads_ff_fe_00_00_as_utf16_le_nul() -> None:
 @pytest.mark.parametrize(
     ("data", "expected"),
     [
-        (b"a\xffb", "a�b"),
-        (b"\xc3", "�"),
-        (b"\xfe\xff\x00", "�"),
-        (b"\xff\xfe\x00\xd8A\x00", "�A"),
+        (b"a\xffb", "a\ufffdb"),
+        (b"\xc3", "\ufffd"),
+        (b"\xfe\xff\x00", "\ufffd"),
+        (b"\xff\xfe\x00\xd8A\x00", "\ufffdA"),
     ],
 )
 def test_whatwg_decode_replaces_errors(data: bytes, expected: str) -> None:
@@ -90,7 +90,7 @@ def test_xml_short_input_is_taken_as_the_whole_entity() -> None:
 
 
 def test_xml_codec_decodes_the_entity() -> None:
-    entity = "﻿<?xml version='1.0'?><a>\xe9</a>"
+    entity = "\ufeff<?xml version='1.0'?><a>\xe9</a>"
     for codec in ("utf-16-le", "utf-16-be", "utf-32-le", "utf-32-be", "utf-8"):
         data = entity.encode(codec)
         guess = xml_autodetect(data)

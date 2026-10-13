@@ -123,14 +123,14 @@ ROUND_TRIP = ["utf-8", "utf-16-le", "utf-16-be", "utf-32-le", "utf-32-be", "gb18
 
 @pytest.mark.parametrize("encoding", ROUND_TRIP)
 def test_decode_round_trip(encoding: str) -> None:
-    text = "café ñ \U0001f600"
-    encoded = ("﻿" + text).encode(encoding)
+    text = "caf\xe9 \xf1 \U0001f600"
+    encoded = ("\ufeff" + text).encode(encoding)
     assert detect(encoded) is not None
     assert decode(encoded) == text
 
 
 def test_decode_keeps_a_second_mark() -> None:
-    assert decode(codecs.BOM_UTF8 * 2 + b"x") == "﻿x"
+    assert decode(codecs.BOM_UTF8 * 2 + b"x") == "\ufeffx"
 
 
 def test_decode_without_bom_uses_default_utf8() -> None:
@@ -138,12 +138,12 @@ def test_decode_without_bom_uses_default_utf8() -> None:
 
 
 def test_decode_honours_explicit_default() -> None:
-    assert decode(b"\xe9", default="latin-1") == "é"
+    assert decode(b"\xe9", default="latin-1") == "\xe9"
 
 
 def test_decode_passes_errors_to_the_codec() -> None:
-    assert decode(codecs.BOM_UTF8 + b"a\xff", errors="replace") == "a�"
-    assert decode(b"a\xff", errors="replace") == "a�"
+    assert decode(codecs.BOM_UTF8 + b"a\xff", errors="replace") == "a\ufffd"
+    assert decode(b"a\xff", errors="replace") == "a\ufffd"
     with pytest.raises(UnicodeDecodeError):
         decode(codecs.BOM_UTF8 + b"a\xff")
 
