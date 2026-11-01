@@ -35,11 +35,11 @@ Progress:
 | 12 | PASS | CHANGELOG 1.0.0 dated 2026-11-01 |
 | 13 | PASS | Version 1.0.0, Production/Stable, Python 3.10 to 3.14, MIT, project URLs, keywords, no runtime dependencies |
 | 14 | PASS | Wheel and sdist lists inspected; LICENSE and py.typed; no fetched content, caches or certification notes in artifacts |
-| 15 | PASS | Each gate exits 0 separately; round-5 suite 1171 passed, 2 platform skips |
+| 15 | PASS | Each gate exits 0 separately; QA lenses round-1 correction suite 1225 passed, 2 platform skips |
 | 16 | PENDING | No independent reviewer verdict recorded |
 | 17 | PENDING | Release branch prepared; merge and publication remain pending |
-| 18 | PASS | 24 initial mutations caught; both round-5 survivors now caught by maintained contracts |
-| 19 | PENDING | c PASS remains applicable; a, b and d need recheck after later runtime changes; round-5 e corrections await independent re-review |
+| 18 | PASS | 24 initial mutations caught; round-5 survivors and latest M52/M54 caught by maintained contracts |
+| 19 | PENDING | c PASS remains applicable; latest a/e corrections await independent re-review; b/d need recheck after later runtime changes |
 
 ## API review and upgrade
 
@@ -194,13 +194,11 @@ environments are confined to the dedicated certification scratch directory.
 
 ## Review status
 
-Round 2 passed the API/docs, correctness and packaging lenses at 1802b7f. Later
-runtime changes affect their reviewed codec paths, so those three verdicts require
-recheck for the current head. Round 4 passed the robustness lens at dd815dd; its
-runtime source remains unchanged. Round 5 confirmed all three round-4
-contract-strength fixes. Its two new contract findings are corrected below and
-await independent re-review. Items 16 and 19 remain open. Merge and publication
-have not been performed.
+The latest QA lenses round 1 reviewed 2c45a87 and reported A-001, QA-E-001 and
+QA-E-002. All three are corrected in the final section below and await independent
+re-review. Round 4 passed the robustness lens at dd815dd; its runtime source remains
+unchanged. Correctness and packaging require recheck after the later codec changes.
+Items 16 and 19 remain open. Merge and publication have not been performed.
 
 ## QA round 1 corrections
 
@@ -591,3 +589,54 @@ Only lens c's existing PASS remains applicable to the unchanged runtime source.
 Lenses a, b and d require recheck after the later codec changes; lens e's latest
 corrections and the independent reviewer remain pending. PR #3 remains open;
 merge and publication have not been performed.
+
+## QA lenses round 1 corrections
+
+Date: 2026-11-01. Reviewed head: `2c45a877922e1ec3173b1f893ed4bb006af23b63`.
+Fix commit: `7e2638a4d36fbdef19b51fbc1fc4cd0b1208b6e0` (`fix qa lens round one findings`).
+All three findings are addressed; none is disputed. The latest reports are retained
+under certification scratch as `lens-a-r1/REPORT.md` and `lens-e-r1/REPORT.md`.
+Independent re-review remains required; this correction does not record new lens verdicts.
+
+| Finding | Correction and evidence |
+| --- | --- |
+| A-001 | README lists `errors="strict"`, `among=None` and `newline=None` for `text_stream`. All eight documented function signatures match runtime parameter names, kinds and defaults. |
+| QA-E-001 | `test_bom_sniff_ignores_nonleading_marks` asserts `None` for nonleading UTF-8, UTF-16LE and UTF-16BE marks at offsets 1, 2 and 4 across bytes, bytearray and memoryview. |
+| QA-E-002 | `test_xml_autodetect_ignores_nonleading_marks` asserts the complete `XmlGuess("other", 0, "utf-8")` for the same marks, offsets and buffer types. |
+
+The two contract findings concern missing tests for behavior already provided by
+the reviewed implementation. All 54 new cases pass on the unchanged runtime source.
+Runtime behavior, public names, signatures and defaults remain stable. CHANGELOG
+records the added coverage and corrected documentation.
+
+Each reported mutation replaced `if head.startswith(mark):` with `if mark in head:`
+alone in a scratch source copy. Each test process disabled bytecode writes and used
+a 300-second per-test timeout. Both mutations fail actual assertions:
+
+| Mutation | Catching contract | Result |
+| --- | --- | --- |
+| M52 in `_whatwg.py` | `test_bom_sniff_ignores_nonleading_marks` | 6 failures, 48 passes |
+| M54 in `_xml.py` | `test_xml_autodetect_ignores_nonleading_marks` | 15 failures, 39 passes |
+
+The baseline and byte-for-byte restored source each pass all 54 cases. No runtime
+file in the release checkout was mutated.
+
+Final gates on CPython 3.14.6, each executed separately:
+
+| Command | Result |
+| --- | --- |
+| ruff format --check . | exit 0, 44 files |
+| ruff check . | exit 0 |
+| mypy --strict src | exit 0, 11 modules |
+| mypy --strict src tests | exit 0, 37 modules |
+| pytest --timeout=300 | exit 0, 1225 passed, two platform skips |
+
+The suite includes the hash-verified reference files retained from preparation,
+ICU and Node.js comparisons, wheel-from-sdist installation, both installed CLI
+entry points and upgrade from PyPI 0.2.0. The skips remain POSIX file modes and
+real symlink creation on this Windows account. Scratch files, caches and pytest
+basetemps stay under `sniffbom-cert/fix-qa-lenses-r1`.
+
+Evidence there includes `mutation-results.json`, `baseline.log`, `M52.log`,
+`M54.log`, `restored.log`, their JUnit reports, `source-hashes.json`,
+`readme-signatures.log`, `final-gates.json`, `final-*.log` and `final.xml`.
