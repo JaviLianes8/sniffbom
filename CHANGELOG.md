@@ -64,6 +64,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- Negative contracts for nonleading UTF-8 and UTF-16 marks in WHATWG BOM sniffing
+  and XML autodetection across bytes, bytearray and memoryview inputs. Runtime
+  behavior is unchanged. The README now shows all `text_stream` keyword defaults.
 - Regression contracts distinguish composed and decomposed registered error-handler
   names and reject adjacent surrogate pairs in codec and error-policy names with
   exact bounded errors. Coverage includes string subclasses, marked/unmarked input

@@ -153,7 +153,7 @@ Reports escape characters unsupported by the output encoding.
 | `strip(data, *, among=None)` | Remove one mark; preserve BOCU-1 and malformed UTF-7 |
 | `decode(data, default="utf-8", *, errors="strict", among=None)` | Text with the mark consumed |
 | `needs_more(data, *, among=None)` | Whether more bytes could change `detect` |
-| `text_stream(binary, default="utf-8", *, errors, among, newline)` | A text stream without the mark |
+| `text_stream(binary, default="utf-8", *, errors="strict", among=None, newline=None)` | A text stream without the mark |
 | `bom_sniff(data)` | The WHATWG "BOM sniff": `"UTF-8"`, `"UTF-16BE"`, `"UTF-16LE"` or `None` |
 | `whatwg_decode(data, fallback="utf-8")` | The WHATWG "decode" algorithm |
 | `xml_autodetect(data)` | An `XmlGuess` after XML 1.0 Appendix F.1 |

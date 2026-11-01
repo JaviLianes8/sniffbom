@@ -3,6 +3,8 @@ back from the pinned specifications in tests/test_sources.py)."""
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import pytest
 
 from sniffbom import XmlGuess, bom_sniff, whatwg_decode, xml_autodetect
@@ -23,6 +25,26 @@ from sniffbom import XmlGuess, bom_sniff, whatwg_decode, xml_autodetect
 )
 def test_bom_sniff_reads_only_the_three_rows(data: bytes, expected: str | None) -> None:
     assert bom_sniff(data) == expected
+
+
+@pytest.mark.parametrize("buffer", [bytes, bytearray, memoryview])
+@pytest.mark.parametrize("mark", [b"\xff\xfe", b"\xfe\xff", b"\xef\xbb\xbf"])
+@pytest.mark.parametrize("offset", [1, 2, 4])
+def test_bom_sniff_ignores_nonleading_marks(
+    buffer: Callable[[bytes], bytes | bytearray | memoryview], mark: bytes, offset: int
+) -> None:
+    # Hand-constructed marks inside and beyond the sniffing window.
+    assert bom_sniff(buffer(b"x" * offset + mark)) is None
+
+
+@pytest.mark.parametrize("buffer", [bytes, bytearray, memoryview])
+@pytest.mark.parametrize("mark", [b"\xff\xfe", b"\xfe\xff", b"\xef\xbb\xbf"])
+@pytest.mark.parametrize("offset", [1, 2, 4])
+def test_xml_autodetect_ignores_nonleading_marks(
+    buffer: Callable[[bytes], bytes | bytearray | memoryview], mark: bytes, offset: int
+) -> None:
+    # Assert every result field for hand-constructed unmarked entities.
+    assert xml_autodetect(buffer(b"x" * offset + mark)) == XmlGuess("other", 0, "utf-8")
 
 
 def test_whatwg_decode_lets_the_mark_win_over_the_fallback() -> None:
