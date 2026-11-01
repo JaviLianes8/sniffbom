@@ -64,6 +64,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- Regression contracts distinguish composed and decomposed registered error-handler
+  names and reject adjacent surrogate pairs in codec and error-policy names with
+  exact bounded errors. Coverage includes string subclasses, marked/unmarked input
+  and both decoding APIs, plus WHATWG fallback validation and mark precedence.
 - Regression contracts for registered error-handler names containing U+D7FF and
   U+E000, and bounded surrogate rejection at every position in error-policy names,
   through bulk and streaming decoding with marked input and string subclasses.

@@ -34,7 +34,9 @@ def _decode(entry: str, raw: bytes, errors: str) -> str:
 @pytest.mark.parametrize("entry", ["bulk", "stream"])
 @pytest.mark.parametrize("prefix", [b"", b"\xef\xbb\xbf"], ids=["unmarked", "marked"])
 @pytest.mark.parametrize("payload", [b"", b"plain", b"\xff"], ids=["empty", "valid", "invalid"])
-@pytest.mark.parametrize("surrogate", ["\ud800", "\udbff", "\udc00", "\udfff"])
+@pytest.mark.parametrize(
+    "surrogate", ["\ud800", "\udbff", "\udc00", "\udfff", "\ud800\udc00", "\udbff\udfff"]
+)
 @pytest.mark.parametrize("position", ["leading", "interior", "trailing"])
 @pytest.mark.parametrize("kind", [str, PolicyName])
 def test_surrogate_error_policies_raise_bounded_lookup_errors(
@@ -87,6 +89,40 @@ def test_registered_error_handler_names_are_exact(
     calls.clear()
     assert _decode(entry, prefix + payload, kind(name)) == expected
     assert calls == [b"\xff"]
+
+
+@pytest.mark.parametrize("entry", ["bulk", "stream"])
+@pytest.mark.parametrize("prefix", [b"", b"\xef\xbb\xbf"], ids=["unmarked", "marked"])
+@pytest.mark.parametrize("form", ["composed", "decomposed"])
+@pytest.mark.parametrize("kind", [str, PolicyName])
+def test_registered_handler_names_preserve_unicode_form(
+    entry: str, prefix: bytes, form: str, kind: type[str]
+) -> None:
+    calls: list[tuple[str, bytes]] = []
+
+    def composed(error: UnicodeError) -> tuple[str, int]:
+        assert isinstance(error, UnicodeDecodeError)
+        calls.append(("composed", error.object[error.start : error.end]))
+        return "[composed]", error.end
+
+    def decomposed(error: UnicodeError) -> tuple[str, int]:
+        assert isinstance(error, UnicodeDecodeError)
+        calls.append(("decomposed", error.object[error.start : error.end]))
+        return "[decomposed]", error.end
+
+    names = {
+        "composed": "sniffbom_caf\u00e9_handler",
+        "decomposed": "sniffbom_cafe\u0301_handler",
+    }
+    codecs.register_error(names["composed"], composed)
+    codecs.register_error(names["decomposed"], decomposed)
+    payload = b"a\xffb"
+    expected = payload.decode("utf-8", names[form])
+    assert expected == f"a[{form}]b"
+    assert calls == [(form, b"\xff")]
+    calls.clear()
+    assert _decode(entry, prefix + payload, kind(names[form])) == expected
+    assert calls == [(form, b"\xff")]
 
 
 @pytest.mark.parametrize("entry", ["bulk", "stream"])

@@ -79,3 +79,29 @@ def test_unsupported_diagnostics_use_only_canonical_names(value: str) -> None:
     assert type(error.encoding) is str
     assert error.encoding == value
     assert ("scsu" in str(error)) is (value == "scsu")
+
+
+@pytest.mark.parametrize("entry", ["bulk", "whatwg", "stream"])
+@pytest.mark.parametrize("payload", [b"", b"plain", b"\xff"], ids=["empty", "valid", "invalid"])
+@pytest.mark.parametrize("pair", ["\ud800\udc00", "\udbff\udfff"])
+@pytest.mark.parametrize("position", ["leading", "interior", "trailing"])
+@pytest.mark.parametrize("kind", [str, UntrustedName])
+def test_paired_surrogate_codec_names_raise_bounded_lookup_errors(
+    entry: str, payload: bytes, pair: str, position: str, kind: type[str]
+) -> None:
+    padding = "PRIVATE" + "x" * 10000
+    names = {
+        "leading": pair + padding,
+        "interior": padding + pair + "_codec",
+        "trailing": padding + pair,
+    }
+    codec = kind(names[position])
+    with pytest.raises(LookupError) as caught:
+        _decode(entry, payload, codec)
+    error = caught.value
+    assert type(error) is LookupError
+    assert error.args == ("unknown encoding or error handler",)
+    assert str(error) == "unknown encoding or error handler"
+    assert repr(error) == "LookupError('unknown encoding or error handler')"
+    assert error.__cause__ is None and error.__context__ is None
+    assert _decode(entry, b"\xef\xbb\xbf" + payload, codec) == payload.decode("utf-8", "replace")
