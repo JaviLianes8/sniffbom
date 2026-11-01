@@ -48,8 +48,21 @@ sniffbom = "sniffbom._cli:main"
 packages = ["src/sniffbom"]
 
 [tool.hatch.build.targets.sdist]
+only-include = [
+    "src/sniffbom",
+    "tests",
+    "scripts/fetch_upstream.py",
+    "README.md",
+    "GUIDE.md",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "LICENSE",
+    "pyproject.toml",
+]
 # Third-party reference files are fetched locally and never shipped; only their manifest is.
 exclude = [
+    "**/__pycache__",
+    "*.pyc",
     ".github",
     "IMPROVEMENTS-round*.md",
     "CERT-1.0-REPORT.md",

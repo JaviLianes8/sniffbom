@@ -57,7 +57,7 @@ def _run(
     *cmd: str | Path, cwd: Path | None = None, stdin: bytes = b""
 ) -> subprocess.CompletedProcess[bytes]:
     return subprocess.run(
-        [str(c) for c in cmd], cwd=cwd, input=stdin, capture_output=True, check=False
+        [str(c) for c in cmd], cwd=cwd, input=stdin, capture_output=True, check=False, timeout=240
     )
 
 
@@ -77,17 +77,49 @@ def test_installed_wheel_end_to_end(tmp_path: Path) -> None:
     assert ".html" not in listing and "rfc2152" not in listing
     assert "tests/upstream/MANIFEST.json" in listing
     assert "tests/test_sources.py" in listing and "scripts/fetch_upstream.py" in listing
+    assert "GUIDE.md" in listing and "LICENSE" in listing
+    assert "CERT-1.0-REPORT" not in listing
+    assert "__pycache__" not in listing and ".pyc" not in listing
+    assert any(name.endswith("/LICENSE") for name in names)
 
     env_dir = tmp_path / "venv"
     venv.create(env_dir, with_pip=True)
     bindir = env_dir / ("Scripts" if sys.platform == "win32" else "bin")
     python = bindir / "python"
-    installed = _run(python, "-m", "pip", "install", "-q", wheel)
-    assert installed.returncode == 0, installed.stderr
-
-    # Run from an empty folder so the source tree cannot shadow the install.
     work = tmp_path / "work"
     work.mkdir()
+    if os.environ.get("SNIFFBOM_E2E_PYPI") == "1":
+        previous = _run(python, "-m", "pip", "install", "-q", "sniffbom==0.2.0")
+        assert previous.returncode == 0, previous.stderr
+        baseline = _run(python, "-I", "-c", PROGRAM, cwd=work)
+        assert baseline.returncode == 0, baseline.stderr
+        snapshot = _run(
+            python,
+            "-I",
+            "-c",
+            "import pickle, pathlib, sniffbom; "
+            "assert sniffbom.__version__ == '0.2.0'; "
+            "pathlib.Path('old.pkl').write_bytes(pickle.dumps("
+            "(sniffbom.BomInfo('utf-8', 3), sniffbom.XmlGuess('utf-8', 3, 'utf-8'))))",
+            cwd=work,
+        )
+        assert snapshot.returncode == 0, snapshot.stderr
+    installed = _run(python, "-m", "pip", "install", "-q", wheel)
+    assert installed.returncode == 0, installed.stderr
+    if os.environ.get("SNIFFBOM_E2E_PYPI") == "1":
+        upgraded = _run(
+            python,
+            "-I",
+            "-c",
+            "import pickle, pathlib, sniffbom; "
+            "assert sniffbom.__version__ == '1.0.0'; "
+            "assert pickle.loads(pathlib.Path('old.pkl').read_bytes()) == "
+            "(sniffbom.BomInfo('utf-8', 3), sniffbom.XmlGuess('utf-8', 3, 'utf-8'))",
+            cwd=work,
+        )
+        assert upgraded.returncode == 0, upgraded.stderr
+
+    # Run from an empty folder so the source tree cannot shadow the install.
     result = _run(python, "-I", "-c", PROGRAM, cwd=work)
     assert result.returncode == 0, result.stderr
     assert result.stdout.decode().strip() == "e2e ok"
@@ -105,6 +137,14 @@ def test_installed_wheel_end_to_end(tmp_path: Path) -> None:
         assert json.loads(shown.stdout) == [expected]
         checked = _run(*command, "--check", marked, cwd=work)
         assert checked.returncode == 1 and b"utf-8 (3 bytes)" in checked.stdout
+        ignored = _run(*command, "--check", "--among", "utf-16-le", marked, cwd=work)
+        assert ignored.returncode == 0 and b": none" in ignored.stdout
+        piped = _run(*command, "--strip", "--json", "-", stdin=b"\xef\xbb\xbfhi", cwd=work)
+        assert piped.returncode == 0 and piped.stdout == b"hi"
+        assert json.loads(piped.stderr)[0]["stripped"] is True
+        missing = _run(*command, work / "missing", cwd=work)
+        assert missing.returncode == 2 and b"sniffbom:" in missing.stderr
+        assert _run(*command, "--help", cwd=work).returncode == 0
     stripped = _run(commands[-1][0], *commands[-1][1:], "--strip", marked, cwd=work)
     assert stripped.returncode == 0, stripped.stderr
     assert marked.read_bytes() == b"hi"

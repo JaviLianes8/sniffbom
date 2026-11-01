@@ -10,7 +10,9 @@ import pytest
 from sniffbom._cli import main
 
 
-@pytest.mark.parametrize("argument", ["--SECRET" * 10000, "--among=SECRET" * 10000])
+@pytest.mark.parametrize(
+    "argument", ["--SECRET" * 10000, "--among=SECRET" * 10000], ids=["unknown", "among"]
+)
 def test_usage_errors_do_not_echo_arguments(
     argument: str, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -21,7 +23,9 @@ def test_usage_errors_do_not_echo_arguments(
     assert len(error) < 500 and "SECRET" not in error
 
 
-@pytest.mark.parametrize("path", ["SECRET" * 10000, "bad\0SECRET", "bad\nSECRET"])
+@pytest.mark.parametrize(
+    "path", ["SECRET" * 10000, "bad\0SECRET", "bad\nSECRET"], ids=["long", "nul", "newline"]
+)
 def test_bad_paths_return_two_with_bounded_messages(
     path: str, capsys: pytest.CaptureFixture[str]
 ) -> None:

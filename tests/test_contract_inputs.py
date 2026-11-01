@@ -110,7 +110,7 @@ def test_among_generators_duplicates_and_order_do_not_change_precedence() -> Non
     assert text_stream(io.BytesIO(data), among=iter(names)).read() == ""
 
 
-@pytest.mark.parametrize("name", ["SECRET" * 10000, "missing-codec"])
+@pytest.mark.parametrize("name", ["SECRET" * 10000, "missing-codec"], ids=["long", "unknown"])
 def test_unknown_codec_and_handler_errors_are_bounded(name: str) -> None:
     operations: tuple[Callable[[], object], ...] = (
         lambda: decode(b"", name),
@@ -147,7 +147,7 @@ def test_unused_defaults_are_ignored_when_a_mark_selects_the_codec() -> None:
     assert text_stream(io.BytesIO(data), "nonexistent").read() == "hello"
 
 
-@pytest.mark.parametrize("newline", ["SECRET" * 10000, 1, b"\n"])
+@pytest.mark.parametrize("newline", ["SECRET" * 10000, 1, b"\n"], ids=["long", "int", "bytes"])
 def test_invalid_newlines_fail_before_consuming_input(newline: object) -> None:
     raw = io.BytesIO(b"abc")
     with pytest.raises((TypeError, ValueError)) as caught:
