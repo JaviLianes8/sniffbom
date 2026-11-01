@@ -35,10 +35,10 @@ Progress:
 | 12 | PASS | CHANGELOG 1.0.0 dated 2026-11-01 |
 | 13 | PASS | Version 1.0.0, Production/Stable, Python 3.10 to 3.14, MIT, project URLs, keywords, no runtime dependencies |
 | 14 | PASS | Wheel and sdist lists inspected; LICENSE and py.typed; no fetched content, caches or certification notes in artifacts |
-| 15 | PASS | Each gate exits 0 separately; QA lenses round-2 correction suite 1303 passed, 2 platform skips |
+| 15 | PASS | Each gate exits 0 separately; QA lenses round-3 correction suite 1462 passed, 2 platform skips |
 | 16 | PENDING | No independent reviewer verdict recorded |
 | 17 | PENDING | Release branch prepared; merge and publication remain pending |
-| 18 | PASS | 24 initial mutations caught; round-5 survivors, M52/M54 and latest N04/N09 caught by maintained contracts |
+| 18 | PASS | 24 initial mutations caught; round-5 survivors, M52/M54, N04/N09 and QA-E-005 through QA-E-008 caught by maintained contracts |
 | 19 | PENDING | c PASS remains applicable; latest a/e corrections await independent re-review; b/d need recheck after later runtime changes |
 
 ## API review and upgrade
@@ -688,6 +688,66 @@ entry points and upgrade from PyPI 0.2.0. The skips remain POSIX file modes and
 real symlink creation on this Windows account. No new interpreter matrix is claimed
 for this bounded correction. Scratch files, caches and pytest basetemps stay under
 `sniffbom-cert/fix-qa-lenses-r2`.
+
+Evidence there includes `verify.py`, `before-mutation-results.json`,
+`after-mutation-results.json`, the `before-*` and `after-*` logs, JUnit reports and
+source hashes, plus `final-gates.json`, `final-*.log` and `final.xml`. The final
+report check is retained as `report-gates.json`, `report-*.log` and `report.xml`.
+
+## QA lenses round 3 corrections
+
+Date: 2026-11-01. Reviewed head: `b002d1504401ca91b70dec3b7825c2db46b4b6b6`.
+Fix commit: `8774d37cde7f5580dd8ca2745efdab9440a2f6aa` (`fix qa lens round three findings`).
+All four findings are addressed; none is disputed. The review report is retained
+under certification scratch as `lens-e-r3/REPORT.md`. Independent re-review
+remains required; this correction does not record a new lens verdict.
+
+The hand-derived contracts in `tests/test_sniff_contracts.py` cover bytes,
+bytearray and memoryview inputs and assert every XML result field:
+
+| Finding | Correction |
+| --- | --- |
+| QA-E-005 | Both complete two-byte UTF-16 marks are recognized without payload: six cases. |
+| QA-E-006 | Single-byte FE, FF and EF prefixes return None: nine cases. |
+| QA-E-007 | All seven XML marks preceded by each of the six ASCII whitespace bytes return XmlGuess("other", 0, "utf-8"): 126 cases. |
+| QA-E-008 | Three case variants of the ASCII signature and three ASCII byte-case variants of the EBCDIC signature return XmlGuess("other", 0, "utf-8"): 18 cases. |
+
+These are missing-contract findings for behavior the reviewed implementation
+already provides. All 159 added cases pass on the unchanged runtime source.
+Public names, signatures, defaults and runtime behavior remain stable. CHANGELOG
+records the added coverage.
+
+Each exact reported mutation was applied alone in a scratch source copy. All four
+survived the 167 existing WHATWG/XML cases before the new contracts. Afterward,
+each fails actual assertions, without collection errors or timeouts:
+
+| Mutation | Catching contract | Result |
+| --- | --- | --- |
+| QA-E-005: require a three-byte head for UTF-16 marks | test_bom_sniff_accepts_complete_utf16_marks_without_payload | 6 failures, 320 passes |
+| QA-E-006: pad the head with FF bytes | test_bom_sniff_rejects_single_byte_prefixes | 3 failures, 323 passes |
+| QA-E-007: strip leading ASCII whitespace from the XML head | test_xml_autodetect_rejects_whitespace_prefixed_marks | 90 failures, 236 passes |
+| QA-E-008: fold byte case when matching XML signatures | test_xml_autodetect_requires_literal_signature_case | 18 failures, 308 passes |
+
+The baseline and byte-for-byte restored source each pass all 326 focused cases.
+Mutation processes disable bytecode writes and use a 300-second per-test timeout.
+No runtime file in the release checkout was mutated.
+
+Final gates on CPython 3.14.6, each executed separately:
+
+| Command | Result |
+| --- | --- |
+| ruff format --check . | exit 0, 45 files |
+| ruff check . | exit 0 |
+| mypy --strict src | exit 0, 11 modules |
+| mypy --strict src tests | exit 0, 38 modules |
+| pytest --timeout=300 | exit 0, 1462 passed, two platform skips |
+
+The full suite includes the hash-verified reference files retained from preparation,
+ICU and Node.js comparisons, wheel-from-sdist installation, both installed CLI
+entry points and upgrade from PyPI 0.2.0. The skips remain POSIX file modes and
+real symlink creation on this Windows account. No new interpreter matrix is claimed
+for this bounded correction. Scratch files, caches and pytest basetemps stay under
+`sniffbom-cert/fix-qa-lenses-r3`.
 
 Evidence there includes `verify.py`, `before-mutation-results.json`,
 `after-mutation-results.json`, the `before-*` and `after-*` logs, JUnit reports and
