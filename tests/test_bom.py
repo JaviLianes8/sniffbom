@@ -57,7 +57,7 @@ def test_among_ignores_marks_outside_the_set() -> None:
 
 
 def test_among_rejects_unknown_names() -> None:
-    with pytest.raises(ValueError, match="utf16le"):
+    with pytest.raises(ValueError, match="unknown encoding name"):
         detect(b"", among=["utf16le"])
 
 

@@ -6,6 +6,40 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-01
+
+### Stable
+
+- The fourteen public names, parameter names and defaults from 0.2.0: signature
+  detection, stripping, decoding, streaming, WHATWG BOM selection and XML families.
+- Python 3.10 through 3.14, including typed results and a dependency-free CLI.
+
+### Changed
+
+- Byte inputs consistently reject integers and integer iterables with `TypeError`;
+  only `bytes`, `bytearray` and `memoryview` are accepted. Buffer contents are used
+  directly, including wide-item and multidimensional views and bytes subclasses.
+- Invalid `among` entries raise `TypeError` for non-strings and `ValueError` for
+  unknown names, without quoting input. Bare bytearrays and memoryviews are rejected
+  as collections of names. Streams validate `among` even when it is empty or a string.
+- Decoder codec names and error handlers are checked even on empty or valid input.
+  Unknown names raise a bounded `LookupError`; embedded NUL raises a bounded
+  `ValueError`. A detected mark still takes precedence over an unused default.
+- Binary transform codecs are rejected with `LookupError`, including on empty input.
+- Streams validate newline values before reading; invalid values raise bounded
+  `TypeError` or `ValueError` messages.
+- Public result and exception classes identify their module as `sniffbom` for new
+  pickles. Old result pickles remain readable. `UnsupportedBomError` now preserves
+  its encoding across copying and pickling, bounds its message and rejects non-strings.
+- Removed the accidental top-level `annotations` attribute from the public namespace.
+- CLI usage errors no longer echo arbitrary arguments; path errors are bounded and
+  invalid paths return status 2. Replacement files use a short fixed prefix.
+
+### Added
+
+- Runnable API examples, a guide with upgrade notes, complete input contracts,
+  seeded properties, source provenance checks and installed-wheel upgrade coverage.
+
 ## [0.2.0]
 
 ### Added

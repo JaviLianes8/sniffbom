@@ -7,7 +7,8 @@ from collections.abc import Iterable
 from typing import Protocol
 
 from ._bom import codec_for
-from ._table import LONGEST, detect, needs_more
+from ._codec import validate_codec
+from ._table import LONGEST, _marks, detect, needs_more
 
 
 class _Reader(Protocol):
@@ -54,7 +55,7 @@ def text_stream(
     among: Iterable[str] | None = None,
     newline: str | None = None,
 ) -> io.TextIOWrapper:
-    """Wrap a binary stream as text, decoded as its byte-order mark says, else ``default``.
+    r"""Wrap a binary stream as text, decoded as its byte-order mark says, else ``default``.
 
     Only the few bytes needed to decide are read up front and the stream is never
     seeked, so pipes and sockets (through ``sock.makefile("rb")``) work. The mark is
@@ -62,8 +63,18 @@ def text_stream(
     mark names an encoding Python cannot decode (the bytes read so far are then gone from
     ``binary``), and `BlockingIOError` when a non-blocking stream has no data yet before
     the mark is decided.
+
+    >>> import io
+    >>> from sniffbom import text_stream
+    >>> with text_stream(io.BytesIO(b"\xef\xbb\xbfhi")) as stream:
+    ...     stream.read()
+    'hi'
     """
-    marks = None if among is None else tuple(among)
+    if newline is not None and not isinstance(newline, str):
+        raise TypeError("newline must be a string or None")
+    if newline not in (None, "", "\n", "\r", "\r\n"):
+        raise ValueError("newline must be None, empty, LF, CR or CRLF")
+    marks = None if among is None else tuple(entry[1] for entry in _marks(among))
     head = b""
     while needs_more(head, among=marks):
         chunk = binary.read(LONGEST - len(head))
@@ -74,6 +85,7 @@ def text_stream(
         head += chunk
     info = detect(head, among=marks)
     codec = default if info is None else codec_for(info)
+    validate_codec(codec, errors)
     if info is not None and info.encoding != "utf-7":
         head = head[info.length :]
     reader = io.BufferedReader(_Prefixed(head, binary))

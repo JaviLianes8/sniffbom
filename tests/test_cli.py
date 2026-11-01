@@ -98,7 +98,7 @@ def test_unknown_among_name_is_a_usage_error(capsys: pytest.CaptureFixture[str])
     with pytest.raises(SystemExit) as caught:
         main(["--among", "utf16", "x"])
     assert caught.value.code == 2
-    assert "utf16" in capsys.readouterr().err
+    assert "unknown encoding name" in capsys.readouterr().err
 
 
 def test_missing_file_exits_two_and_goes_on(

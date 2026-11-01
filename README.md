@@ -1,10 +1,16 @@
 # sniffbom
 
+[![Lianes8 Certified](https://lianes8studio.com/certified/lianes8-certified-badge.svg)](https://lianes8studio.com/certified)
+
 Detect, name and strip the Unicode byte-order mark on a byte string: every signature in
 use (UTF-8, UTF-16 and UTF-32 in both orders, UTF-7, UTF-1, UTF-EBCDIC, SCSU, BOCU-1 and
 GB18030), streams and partial reads, the WHATWG decode rule and XML entity autodetection.
-Zero dependencies, fully typed; every function takes `bytes`, `bytearray` or
-`memoryview`.
+Zero dependencies, fully typed, Python 3.10+. Byte-input functions take `bytes`,
+`bytearray` or `memoryview`; `text_stream` takes a binary reader.
+
+Read the [guide](https://github.com/JaviLianes8/sniffbom/blob/main/GUIDE.md) for input,
+error and streaming contracts, and the
+[changelog](https://github.com/JaviLianes8/sniffbom/blob/main/CHANGELOG.md) for upgrades.
 
 ## Install
 
@@ -75,8 +81,10 @@ print(repr(decode(b"\xef\xbb\xbfabc", among=())))
 # '\ufeffabc'
 ```
 
-`whatwg_decode(data, fallback)` is the "decode" algorithm: the mark wins over the
-fallback encoding and malformed input becomes U+FFFD instead of raising.
+`whatwg_decode(data, fallback)` follows the BOM selection and replacement rule of the
+"decode" algorithm. The fallback is a Python text codec name, not a browser encoding
+label: for example, `latin-1` means Python Latin-1, not Windows-1252. This is not a full
+implementation of WHATWG legacy decoders. Malformed UTF-8 and UTF-16 become U+FFFD.
 
 ### Streams and partial reads
 
@@ -96,7 +104,8 @@ print(stream.read())
 UTF-32LE mark). `text_stream` reads at most five bytes to decide, never seeks, and
 returns a text stream with the mark consumed, so it works on pipes and on sockets through
 `sock.makefile("rb")`. A non-blocking stream that has no data before the mark is decided
-raises `BlockingIOError` rather than guessing.
+raises `BlockingIOError` rather than guessing. Decoding a UTF-7 mark can read beyond
+the five-byte sniffing prefix because the mark shares a base64 run with later text.
 
 ### XML entities
 
@@ -149,7 +158,7 @@ it is. When stdin is stripped to stdout, the report goes to stderr.
 
 A UTF-7 mark is `+/v` and a fourth byte (`8`, `9`, `+` or `/`) that also carries two bits
 of the next character, so slicing `data[info.length:]` is only exact for `+/v8-`; `strip`
-re-encodes the rest of the run and is always exact. Text that happens to start with
+re-encodes a valid run and leaves a malformed run unchanged. Text that happens to start with
 `+/v8` is read as UTF-7, as with any signature.
 
 ## Why
@@ -158,8 +167,11 @@ The standard library exposes the BOM byte sequences as `codecs.BOM_*` constants 
 offers no single call that detects one, names the encoding and hands back the content
 without it. `utf-8-sig` only covers UTF-8, and the usual hand-rolled sniffers get the
 ordering wrong: a UTF-32-LE mark (`FF FE 00 00`) begins with the UTF-16-LE mark
-(`FF FE`), so a naive check reports UTF-16. Larger options pull in dependencies. This is
-the small, typed primitive that does those steps correctly and says which rule it uses.
+(`FF FE`), so checking UTF-16 first reports the wrong encoding. If the encoding is
+already known, Python's codecs or `open(..., encoding=...)` may be all you need.
+sniffbom is useful when you need a named signature, selective stripping, or a choice
+between Unicode, browser BOM selection and XML rules. It does not guess an encoding
+from unmarked text or validate an XML document.
 
 ## Sources
 
@@ -171,7 +183,7 @@ there.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT. See [LICENSE](https://github.com/JaviLianes8/sniffbom/blob/main/LICENSE).
 
 ## Links
 

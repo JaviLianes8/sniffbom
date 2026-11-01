@@ -9,13 +9,20 @@ import sys
 import tempfile
 from collections.abc import Sequence
 from pathlib import Path
+from typing import NoReturn
 
 from ._bom import strip
 from ._table import ENCODINGS, BomInfo, detect
 
 
+class _Parser(argparse.ArgumentParser):
+    def error(self, message: str) -> NoReturn:
+        safe = "unknown encoding name in among; use names from ENCODINGS"
+        super().error(safe if message == safe else "invalid arguments; use --help")
+
+
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
+    parser = _Parser(
         prog="sniffbom", description="Name, check for or strip the byte-order mark of files."
     )
     parser.add_argument("paths", nargs="+", metavar="PATH", help="files to read, - for stdin")
@@ -38,8 +45,8 @@ def _rewrite(path: Path, data: bytes) -> None:
     # leaves half a file. The mode is copied after the swap: a read-only temporary file
     # could not be replaced or removed on Windows.
     target = path.resolve()
-    handle, name = tempfile.mkstemp(dir=target.parent, prefix=f".{target.name}.")
     mode = target.stat().st_mode
+    handle, name = tempfile.mkstemp(dir=target.parent, prefix=".sniffbom-")
     try:
         with os.fdopen(handle, "wb") as out:
             out.write(data)
@@ -63,6 +70,12 @@ def _line(path: str, info: BomInfo | None, stripped: bool) -> str:
         return f"{path}: none"
     verb = "stripped " if stripped else ""
     return f"{path}: {verb}{info.encoding} ({info.length} bytes)"
+
+
+def _failure(path: str, error: OSError | ValueError) -> str:
+    label = path if len(path) <= 240 and path.isprintable() else "<invalid or oversized path>"
+    detail = error.strerror if isinstance(error, OSError) else "invalid path"
+    return f"sniffbom: {label}: {(detail or 'I/O error')[:160]}"
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -94,8 +107,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                     sys.stdout.buffer.flush()
                 elif stripped:
                     _rewrite(Path(path), new)
-        except OSError as error:
-            print(f"sniffbom: {path}: {error.strerror or error}", file=sys.stderr)
+        except (OSError, ValueError) as error:
+            print(_failure(path, error), file=sys.stderr)
             failed = True
             continue
         found = found or info is not None
