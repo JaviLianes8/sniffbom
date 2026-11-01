@@ -38,6 +38,15 @@ def test_bom_sniff_ignores_nonleading_marks(
 
 
 @pytest.mark.parametrize("buffer", [bytes, bytearray, memoryview])
+@pytest.mark.parametrize("mark", [b"\xff\xfe", b"\xfe\xff"])
+def test_bom_sniff_rejects_nul_prefixed_utf16_marks(
+    buffer: Callable[[bytes], bytes | bytearray | memoryview], mark: bytes
+) -> None:
+    # Hand-constructed padding must not move a mark to offset zero.
+    assert bom_sniff(buffer(b"\x00" + mark)) is None
+
+
+@pytest.mark.parametrize("buffer", [bytes, bytearray, memoryview])
 @pytest.mark.parametrize("mark", [b"\xff\xfe", b"\xfe\xff", b"\xef\xbb\xbf"])
 @pytest.mark.parametrize("offset", [1, 2, 4])
 def test_xml_autodetect_ignores_nonleading_marks(
@@ -103,6 +112,28 @@ def test_whatwg_decode_replaces_errors(data: bytes, expected: str) -> None:
 )
 def test_xml_autodetect_follows_appendix_f(data: bytes, expected: XmlGuess) -> None:
     assert xml_autodetect(data) == expected
+
+
+@pytest.mark.parametrize("buffer", [bytes, bytearray, memoryview])
+@pytest.mark.parametrize("length", [1, 2, 3])
+@pytest.mark.parametrize(
+    "signature",
+    [
+        b"\x00\x00\x00<",
+        b"<\x00\x00\x00",
+        b"\x00\x00<\x00",
+        b"\x00<\x00\x00",
+        b"\x00<\x00?",
+        b"<\x00?\x00",
+        b"<?xm",
+        b"\x4c\x6f\xa7\x94",
+    ],
+)
+def test_xml_autodetect_requires_complete_unmarked_signatures(
+    buffer: Callable[[bytes], bytes | bytearray | memoryview], signature: bytes, length: int
+) -> None:
+    # Hand-derived proper prefixes are complete entities, not partial reads.
+    assert xml_autodetect(buffer(signature[:length])) == XmlGuess("other", 0, "utf-8")
 
 
 def test_xml_short_input_is_taken_as_the_whole_entity() -> None:

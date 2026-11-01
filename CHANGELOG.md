@@ -64,6 +64,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- Negative contracts reject NUL-prefixed UTF-16 marks in WHATWG BOM sniffing and
+  require complete unmarked XML signatures across bytes, bytearray and memoryview
+  inputs. Runtime behavior and the public API are unchanged.
 - Negative contracts for nonleading UTF-8 and UTF-16 marks in WHATWG BOM sniffing
   and XML autodetection across bytes, bytearray and memoryview inputs. Runtime
   behavior is unchanged. The README now shows all `text_stream` keyword defaults.
