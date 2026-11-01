@@ -35,10 +35,10 @@ Progress:
 | 12 | PASS | CHANGELOG 1.0.0 dated 2026-11-01 |
 | 13 | PASS | Version 1.0.0, Production/Stable, Python 3.10 to 3.14, MIT, project URLs, keywords, no runtime dependencies |
 | 14 | PASS | Wheel and sdist lists inspected; LICENSE and py.typed; no fetched content, caches or certification notes in artifacts |
-| 15 | PASS | Each gate exits 0 separately; QA lenses round-1 correction suite 1225 passed, 2 platform skips |
+| 15 | PASS | Each gate exits 0 separately; QA lenses round-2 correction suite 1303 passed, 2 platform skips |
 | 16 | PENDING | No independent reviewer verdict recorded |
 | 17 | PENDING | Release branch prepared; merge and publication remain pending |
-| 18 | PASS | 24 initial mutations caught; round-5 survivors and latest M52/M54 caught by maintained contracts |
+| 18 | PASS | 24 initial mutations caught; round-5 survivors, M52/M54 and latest N04/N09 caught by maintained contracts |
 | 19 | PENDING | c PASS remains applicable; latest a/e corrections await independent re-review; b/d need recheck after later runtime changes |
 
 ## API review and upgrade
@@ -640,3 +640,56 @@ basetemps stay under `sniffbom-cert/fix-qa-lenses-r1`.
 Evidence there includes `mutation-results.json`, `baseline.log`, `M52.log`,
 `M54.log`, `restored.log`, their JUnit reports, `source-hashes.json`,
 `readme-signatures.log`, `final-gates.json`, `final-*.log` and `final.xml`.
+
+## QA lenses round 2 corrections
+
+Date: 2026-11-01. Reviewed head: `a3239aef25df43b43f360c6a21138d59d057d870`.
+Fix commit: `597189cf2993a182fbf3a57b199ec50eaf700328` (`fix qa lens round two findings`).
+Both findings are addressed; neither is disputed. The review report is retained
+under certification scratch as `lens-e-r2/REPORT.md`. Independent re-review
+remains required; this correction does not record a new lens verdict.
+
+| Finding | Correction and evidence |
+| --- | --- |
+| QA-E-003 | `test_bom_sniff_rejects_nul_prefixed_utf16_marks` asserts `None` for both UTF-16 marks preceded by one NUL byte across bytes, bytearray and memoryview: six cases. |
+| QA-E-004 | `test_xml_autodetect_requires_complete_unmarked_signatures` asserts the complete `XmlGuess("other", 0, "utf-8")` for lengths one, two and three of all eight unmarked signatures across bytes, bytearray and memoryview: 72 cases. |
+
+These findings concern missing contracts for behavior the reviewed implementation
+already provides. All 78 new cases pass on the unchanged runtime source. Public
+names, signatures, defaults and runtime behavior remain stable. CHANGELOG records
+the additional coverage.
+
+Each exact reported mutation was applied alone in a scratch source copy. Both
+survived all 89 existing WHATWG/XML cases before the new contracts. Afterward,
+each fails actual assertions, without collection errors or timeouts:
+
+| Mutation | Catching contract | Result |
+| --- | --- | --- |
+| N04: strip leading NUL bytes from the BOM sniffing head | test_bom_sniff_rejects_nul_prefixed_utf16_marks | 6 failures, 161 passes |
+| N09: accept nonempty proper prefixes of unmarked XML signatures | test_xml_autodetect_requires_complete_unmarked_signatures | 72 failures, 95 passes |
+
+The baseline and byte-for-byte restored source each pass all 167 focused cases.
+Mutation processes disable bytecode writes and use a 300-second per-test timeout.
+No runtime file in the release checkout was mutated.
+
+Final gates on CPython 3.14.6, each executed separately:
+
+| Command | Result |
+| --- | --- |
+| ruff format --check . | exit 0, 44 files |
+| ruff check . | exit 0 |
+| mypy --strict src | exit 0, 11 modules |
+| mypy --strict src tests | exit 0, 37 modules |
+| pytest --timeout=300 | exit 0, 1303 passed, two platform skips |
+
+The full suite includes the hash-verified reference files retained from preparation,
+ICU and Node.js comparisons, wheel-from-sdist installation, both installed CLI
+entry points and upgrade from PyPI 0.2.0. The skips remain POSIX file modes and
+real symlink creation on this Windows account. No new interpreter matrix is claimed
+for this bounded correction. Scratch files, caches and pytest basetemps stay under
+`sniffbom-cert/fix-qa-lenses-r2`.
+
+Evidence there includes `verify.py`, `before-mutation-results.json`,
+`after-mutation-results.json`, the `before-*` and `after-*` logs, JUnit reports and
+source hashes, plus `final-gates.json`, `final-*.log` and `final.xml`. The final
+report check is retained as `report-gates.json`, `report-*.log` and `report.xml`.
