@@ -200,7 +200,7 @@ remain open. Merge and publication have not been performed.
 ## QA round 1 corrections
 
 Date: 2026-11-01. Reviewed head: `19552074c06917cd817e9833715fa211a1572bfc`.
-Fix commit: `fix qa round one findings` (the commit introducing this section).
+Fix commit: `331078331f1bba9297b730c41db459c45267fddc` (`fix qa round one findings`).
 All five initial lenses reported FAIL. All 18 findings are addressed below; no
 finding is disputed. Independent re-review remains required before certification.
 
