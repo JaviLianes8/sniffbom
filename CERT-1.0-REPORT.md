@@ -35,11 +35,11 @@ Progress:
 | 12 | PASS | CHANGELOG 1.0.0 dated 2026-11-01 |
 | 13 | PASS | Version 1.0.0, Production/Stable, Python 3.10 to 3.14, MIT, project URLs, keywords, no runtime dependencies |
 | 14 | PASS | Wheel and sdist lists inspected; LICENSE and py.typed; no fetched content, caches or certification notes in artifacts |
-| 15 | PASS | Each gate exits 0 separately; full suite 417 passed, 2 platform skips |
+| 15 | PASS | Each gate exits 0 separately; round-2 suite 577 passed, 2 platform skips |
 | 16 | PENDING | No independent reviewer verdict recorded |
 | 17 | PENDING | Release branch prepared; merge and publication remain pending |
 | 18 | PASS | 24 isolated mutations, 24 caught, no survivors; table below |
-| 19 | PENDING | Round 1: five FAIL verdicts; corrections below await independent re-review |
+| 19 | PENDING | Round 2: a, b and d PASS; c and e corrections below await independent re-review |
 
 ## API review and upgrade
 
@@ -194,8 +194,9 @@ environments are confined to the dedicated certification scratch directory.
 
 ## Review status
 
-No QA lens or independent reviewer has passed this release yet. Items 16 and 19
-remain open. Merge and publication have not been performed.
+Round 2 passed the API/docs, correctness and packaging lenses on the reviewed head.
+Robustness and contract-strength corrections await independent re-review; items 16
+and 19 remain open. Merge and publication have not been performed.
 
 ## QA round 1 corrections
 
@@ -278,3 +279,71 @@ Final round-1 gates, each executed separately on CPython 3.14.6:
 
 All eleven reference files were fetched again and verified against the manifest
 before this final suite. Its output is retained in `fix-r1/final.log`.
+
+## QA round 2 corrections
+
+Date: 2026-11-01. Reviewed head: `1802b7f338891108986055bc79d0e3ab588e84ac`.
+Fix commit: `d32cd99939f874c9e37d8cdc6ebeec4c57e81a5e` (`fix qa round two findings`).
+All six reported findings are addressed; none is disputed. The correction has not
+yet received independent re-review.
+
+The five round-2 reports, retained under the external certification scratch
+directory as `lens-<letter>-r2/REPORT.md`, record these results for the reviewed head:
+
+| Lens | Verdict | Findings |
+| --- | --- | --- |
+| a: API and docs | PASS | None |
+| b: Correctness and ground truth | PASS | None |
+| c: Adversarial and robustness | FAIL | C-007 |
+| d: Packaging and real e2e | PASS | None |
+| e: Contract strength | FAIL | E-09 through E-13 |
+
+| Finding | Correction and maintained evidence |
+| --- | --- |
+| C-007 | Normalize selected codec and error-policy strings with `str.__str__` before validation, retain those values through decoding and the GB18030 guard. Equality, iteration, containment and string-conversion overrides cannot bypass validation. Bounded errors, supported policies and BOM precedence are covered in `test_codec_subclasses.py`; GUIDE and CHANGELOG describe the behavior. |
+| E-09 | Missing and non-callable `read` with callable `close` must raise bounded TypeError at setup, both with normal sniffing and empty `among`. `test_stream_limits.py` |
+| E-10 | Exactly 65537 base64 bytes must raise the UTF-7 guard error with strict, replace and ignore policies across two chunk sizes; existing 65536-byte acceptance remains covered. `test_stream_limits.py` |
+| E-11 | A valid shifted run containing 65544 interior plus bytes must hit the guard across reader chunks. Python bulk decoding independently accepts the input. `test_stream_limits.py` |
+| E-12 | Long plus-prefixed ASCII must decode completely through UTF-8 and Latin-1, with EOF on the next read. `test_stream_limits.py` |
+| E-13 | The public module CLI runs with explicitly configured cp1252/strict stderr: a missing Unicode path yields status 2, an escaped diagnostic, no traceback and a report for the later valid path. `test_cli_unicode.py` |
+
+The behavior contracts were added and executed before changing runtime code: 20
+failures and 61 passes across the three affected test modules. The failures include
+all four subclass bypasses from C-007, plus hidden NULs and incorrectly rejected
+supported policies. After the correction, the focused decoder, stream and CLI
+contracts passed all 202 cases. Public names, signatures and defaults are unchanged.
+
+E-09 through E-13 required regression tests; the existing implementation already
+satisfied their witnesses. Each exact reported mutation was injected separately
+into a scratch source copy and tested against the new maintained contracts. The 23
+targeted cases passed before mutation and after byte-for-byte restoration. All five
+mutations failed their contracts, with no collection error or timeout:
+
+| Lens-e mutation | Failing contract |
+| --- | --- |
+| N15 | test_closeable_reader_still_requires_callable_read |
+| N22 | test_first_byte_over_utf7_limit_is_rejected |
+| N26 | test_plus_counts_inside_utf7_shifted_run |
+| N28 | test_long_ascii_run_remains_valid_in_non_utf7_stream |
+| N31 | test_unicode_error_report_preserves_status_and_later_paths |
+
+Round-2 gates, each executed separately on CPython 3.14.6:
+
+| Command | Result |
+| --- | --- |
+| ruff format --check . | exit 0, 43 files |
+| ruff check . | exit 0 |
+| mypy --strict src | exit 0, 11 modules |
+| mypy --strict src tests | exit 0, 36 modules |
+| pytest --timeout=300 | exit 0, 577 passed, two platform skips |
+
+All eleven reference files were fetched again and verified against the manifest.
+The full suite enables ICU, Node.js, wheel-from-sdist installation, both installed
+CLI entry points and the live 0.2.0 upgrade. The two existing skips are POSIX file
+modes and real symlink creation on Windows; their portable models pass. No new
+interpreter matrix is claimed for this bounded correction. Tests have a 300-second
+timeout; all temporary files and caches stay under certification scratch.
+
+Evidence is retained in `sniffbom-cert/fix-r2`: `red.log`, `green.log`,
+`mutation-results.json`, `baseline.log`, `N15.log`, `N22.log`, `N26.log`, `N28.log`,
+`N31.log`, `restored.log`, `fetch.log`, `full.log` and the final gate logs.
