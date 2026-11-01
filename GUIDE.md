@@ -119,6 +119,8 @@ with the requested error policy; `whatwg_decode` always requests `replace`. Its 
 replacement guarantee covers UTF-8/16, while other codecs follow Python's behavior.
 Binary transforms such as `base64_codec` are not supported. A mark overrides the unused
 default or fallback. `errors` is validated even for empty or already-valid text.
+Codec and error-policy string subclasses use their underlying plain string values
+throughout validation and decoding; overridden string methods do not change them.
 
 ## Command line
 

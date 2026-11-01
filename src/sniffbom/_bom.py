@@ -80,10 +80,10 @@ def decode(
     data = byte_data(data)
     info = detect(data, among=among)
     if info is None:
-        validate_codec(default, errors)
-        return data.decode(default, errors)
+        codec, errors, _ = validate_codec(default, errors)
+        return data.decode(codec, errors)
     # Decoding the mark with the rest keeps UTF-7 exact, where it shares a byte.
     codec = codec_for(info)
-    validate_codec(codec, errors)
+    codec, errors, _ = validate_codec(codec, errors)
     text = data.decode(codec, errors)
     return text[1:] if text.startswith("\ufeff") else text

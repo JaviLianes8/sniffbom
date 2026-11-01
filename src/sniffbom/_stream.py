@@ -94,7 +94,7 @@ def text_stream(
         head += chunk
     info = detect(head, among=marks)
     codec = default if info is None else codec_for(info)
-    canonical = validate_codec(codec, errors)
+    codec, errors, canonical = validate_codec(codec, errors)
     if canonical == "gb18030" and errors == "surrogateescape":
         raise LookupError("GB18030 streams do not support surrogateescape")
     if info is not None and info.encoding != "utf-7":

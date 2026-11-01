@@ -16,6 +16,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- Decoder codec names and error-policy strings now use the underlying plain string
+  value for validation and decoding. String subclass overrides cannot bypass GB18030,
+  IDNA or Punycode policy restrictions, hide surrogate or NUL characters, or cause
+  supported policies to be rejected. Detected marks still override unused fallbacks.
 - BOCU-1 stripping now leaves the entire input unchanged, including through the CLI,
   because removing its signature would corrupt the retained decoder state. Reports
   keep `stripped=false` for these inputs.

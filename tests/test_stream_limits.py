@@ -45,6 +45,37 @@ def test_utf7_run_limit_accepts_boundary_and_resets(prefix: bytes, step: int) ->
         assert stream.read() == decode(raw, default="utf-7")
 
 
+@pytest.mark.parametrize("errors", ["strict", "replace", "ignore"])
+@pytest.mark.parametrize("step", [97, 8192])
+def test_first_byte_over_utf7_limit_is_rejected(errors: str, step: int) -> None:
+    raw = b"+" + b"A" * 65537 + b"-"
+    with (
+        pytest.raises(UnicodeError, match=r"^UTF-7 shifted run exceeds 65536 bytes$"),
+        text_stream(CountingReader(raw, step), default="utf-7", errors=errors) as stream,
+    ):
+        stream.read()
+
+
+@pytest.mark.parametrize("step", [97, 8192])
+def test_plus_counts_inside_utf7_shifted_run(step: int) -> None:
+    raw = b"+" + b"+" * 65544 + b"-"
+    assert len(raw.decode("utf-7")) == 24579
+    with (
+        pytest.raises(UnicodeError, match=r"^UTF-7 shifted run exceeds 65536 bytes$"),
+        text_stream(CountingReader(raw, step), default="utf-7") as stream,
+    ):
+        stream.read()
+
+
+@pytest.mark.parametrize("codec", ["utf-8", "latin-1"])
+@pytest.mark.parametrize("step", [97, 8192])
+def test_long_ascii_run_remains_valid_in_non_utf7_stream(codec: str, step: int) -> None:
+    raw = b"+" + b"A" * 65537 + b"-"
+    with text_stream(CountingReader(raw, step), default=codec) as stream:
+        assert stream.read() == raw.decode(codec)
+        assert stream.read() == ""
+
+
 @pytest.mark.parametrize("marked", [False, True])
 def test_utf7_limit_applies_to_runs_after_plain_text(marked: bool) -> None:
     raw = (b"+/v8-" if marked else b"") + b"plain" + b"+" + b"A" * 65539 + b"-"
@@ -82,3 +113,21 @@ def test_reader_capabilities_are_checked_before_consuming_input() -> None:
 
     with pytest.raises(TypeError):
         text_stream(MissingClose())  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize("read", ["missing", None, False, 1, b""])
+@pytest.mark.parametrize("among", [None, ()])
+def test_closeable_reader_still_requires_callable_read(
+    read: object, among: Iterable[str] | None
+) -> None:
+    class CloseOnly:
+        read: object
+
+        def close(self) -> None:
+            pass
+
+    reader = CloseOnly()
+    if read != "missing":
+        reader.read = read
+    with pytest.raises(TypeError, match=r"^binary must provide callable read and close methods$"):
+        text_stream(reader, among=among)  # type: ignore[arg-type]

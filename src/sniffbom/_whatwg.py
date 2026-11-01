@@ -57,5 +57,5 @@ def whatwg_decode(data: BytesLike, fallback: str = "utf-8") -> str:
     for mark, _, codec in _SNIFF:
         if data.startswith(mark):
             return data[len(mark) :].decode(codec, "replace")
-    validate_codec(fallback, "replace")
-    return data.decode(fallback, "replace")
+    codec, errors, _ = validate_codec(fallback, "replace")
+    return data.decode(codec, errors)

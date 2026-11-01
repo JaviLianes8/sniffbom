@@ -5,9 +5,12 @@ from __future__ import annotations
 import codecs
 
 
-def validate_codec(codec: str, errors: str) -> str:
+def validate_codec(codec: str, errors: str) -> tuple[str, str, str]:
+    """Return plain codec and policy strings plus the codec's canonical name."""
     if not isinstance(codec, str) or not isinstance(errors, str):
         raise TypeError("encoding and errors must be strings")
+    codec = str.__str__(codec)
+    errors = str.__str__(errors)
     if "\x00" in codec or "\x00" in errors:
         raise ValueError("encoding and errors must not contain NUL")
     if any("\ud800" <= char <= "\udfff" for char in codec):
@@ -22,4 +25,4 @@ def validate_codec(codec: str, errors: str) -> str:
     policies = {"undefined": (), "idna": ("strict",), "punycode": ("strict", "replace", "ignore")}
     if info.name in policies and errors not in policies[info.name]:
         raise LookupError("encoding does not support the requested error policy")
-    return info.name
+    return codec, errors, info.name
