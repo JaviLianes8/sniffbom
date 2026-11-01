@@ -16,6 +16,7 @@ Progress:
 - [x] Independent review findings fixed with regression tests
 - [x] Certification QA round 1: all eighteen findings addressed and eight survivors caught
 - [x] Certification QA round 3: all eight findings addressed and seven survivors caught
+- [ ] Certification QA round 3: independent re-review
 - [ ] Certification QA round 1: independent re-review
 - [ ] Pull request opened, guard clean
 

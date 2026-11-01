@@ -285,8 +285,8 @@ before this final suite. Its output is retained in `fix-r1/final.log`.
 
 Date: 2026-11-01. Reviewed head: `1802b7f338891108986055bc79d0e3ab588e84ac`.
 Fix commit: `d32cd99939f874c9e37d8cdc6ebeec4c57e81a5e` (`fix qa round two findings`).
-All six reported findings are addressed; none is disputed. The correction has not
-yet received independent re-review.
+All six reported findings are addressed; none is disputed. The round-3 rechecks
+independently confirmed these fixes and reported the additional findings below.
 
 The five round-2 reports, retained under the external certification scratch
 directory as `lens-<letter>-r2/REPORT.md`, record these results for the reviewed head:
@@ -352,7 +352,7 @@ Evidence is retained in `sniffbom-cert/fix-r2`: `red.log`, `green.log`,
 ## QA round 3 corrections
 
 Date: 2026-11-01. Reviewed head: `6d5ce1f8792261dc352e87c1515b8d87ee126c11`.
-Fix commit: `fix qa round three findings` on `release/1.0.0`.
+Fix commit: `82a4056afb9ca539e7c0d0ac028089befe08dc24` (`fix qa round three findings`).
 All eight reported findings are addressed; none is disputed. Independent re-review
 of these corrections remains required.
 
