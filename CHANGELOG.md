@@ -16,6 +16,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- Surrogate-containing error-policy names now raise bounded `LookupError` before
+  registry lookup, including on empty or valid input and for string subclasses.
+  Exception messages, representations and arguments do not retain the supplied name.
 - Decoder codec names and error-policy strings now use the underlying plain string
   value for validation and decoding. String subclass overrides cannot bypass GB18030,
   IDNA or Punycode policy restrictions, hide surrogate or NUL characters, or cause

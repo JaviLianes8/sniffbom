@@ -98,3 +98,8 @@ def test_subclass_policy_cannot_bypass_gb18030_stream_restriction(raw: bytes) ->
 
 def test_whatwg_uses_underlying_subclass_fallback() -> None:
     assert whatwg_decode(b"\xe9", fallback=HiddenName("latin-1")) == "\xe9"
+
+
+@pytest.mark.parametrize("entry", ["bulk", "stream"])
+def test_decoding_keeps_the_underlying_fallback(entry: str) -> None:
+    assert _decode(entry, b"\xe9", HiddenName("latin-1"), "strict") == "\xe9"

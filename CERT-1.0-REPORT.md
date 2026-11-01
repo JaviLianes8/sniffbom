@@ -35,11 +35,11 @@ Progress:
 | 12 | PASS | CHANGELOG 1.0.0 dated 2026-11-01 |
 | 13 | PASS | Version 1.0.0, Production/Stable, Python 3.10 to 3.14, MIT, project URLs, keywords, no runtime dependencies |
 | 14 | PASS | Wheel and sdist lists inspected; LICENSE and py.typed; no fetched content, caches or certification notes in artifacts |
-| 15 | PASS | Each gate exits 0 separately; round-2 suite 577 passed, 2 platform skips |
+| 15 | PASS | Each gate exits 0 separately; round-3 suite 663 passed, 2 platform skips |
 | 16 | PENDING | No independent reviewer verdict recorded |
 | 17 | PENDING | Release branch prepared; merge and publication remain pending |
 | 18 | PASS | 24 isolated mutations, 24 caught, no survivors; table below |
-| 19 | PENDING | Round 2: a, b and d PASS; c and e corrections below await independent re-review |
+| 19 | PENDING | Round 2: a, b and d PASS; round-3 c and e corrections below await independent re-review |
 
 ## API review and upgrade
 
@@ -195,8 +195,9 @@ environments are confined to the dedicated certification scratch directory.
 ## Review status
 
 Round 2 passed the API/docs, correctness and packaging lenses on the reviewed head.
-Robustness and contract-strength corrections await independent re-review; items 16
-and 19 remain open. Merge and publication have not been performed.
+Round 3 confirmed the earlier robustness and contract-strength fixes and reported
+eight additional findings. Their corrections below await independent re-review;
+items 16 and 19 remain open. Merge and publication have not been performed.
 
 ## QA round 1 corrections
 
@@ -347,3 +348,73 @@ timeout; all temporary files and caches stay under certification scratch.
 Evidence is retained in `sniffbom-cert/fix-r2`: `red.log`, `green.log`,
 `mutation-results.json`, `baseline.log`, `N15.log`, `N22.log`, `N26.log`, `N28.log`,
 `N31.log`, `restored.log`, `fetch.log`, `full.log` and the final gate logs.
+
+## QA round 3 corrections
+
+Date: 2026-11-01. Reviewed head: `6d5ce1f8792261dc352e87c1515b8d87ee126c11`.
+Fix commit: `fix qa round three findings` on `release/1.0.0`.
+All eight reported findings are addressed; none is disputed. Independent re-review
+of these corrections remains required.
+
+The two round-3 reports, retained under the external certification scratch
+directory as `lens-<letter>-r3/REPORT.md`, record these results for the reviewed head:
+
+| Lens | Verdict | Findings |
+| --- | --- | --- |
+| c: Adversarial and robustness | FAIL | C-007 fixed; new C-008 |
+| e: Contract strength | FAIL | E-09 through E-13 fixed; new E-14 through E-20 |
+
+| Finding | Correction and maintained evidence |
+| --- | --- |
+| C-008 | Reject surrogates in the normalized error-policy name before registry lookup with bounded LookupError. Empty, valid and marked input, plain strings, subclasses and all surrogate-range endpoints are covered; exception type, arguments, representation and chaining are pinned in `test_error_policy_contracts.py`. GUIDE and CHANGELOG record the behavior. |
+| E-14 | Registered mixed-case names execute their exact handler through bulk and streaming decoding, with marked/unmarked input and plain/subclass policy names. `test_registered_error_handler_names_are_exact` |
+| E-15 | Registered names with surrounding spaces retain significant whitespace and execute their exact handler through both decoders. `test_registered_error_handler_names_are_exact` |
+| E-16 | Non-ASCII unmarked bulk input uses the underlying Latin-1 fallback even when its string subclass returns UTF-8 from `__str__`. `test_decoding_keeps_the_underlying_fallback[bulk]` |
+| E-17 | Malformed marked bulk input uses the underlying ignore policy even when its string subclass returns strict from `__str__`. `test_decoding_keeps_the_underlying_error_policy[marked-bulk]` |
+| E-18 | Non-ASCII stream input uses the underlying Latin-1 fallback despite its string-conversion override. `test_decoding_keeps_the_underlying_fallback[stream]` |
+| E-19 | Malformed marked and unmarked streams retain the underlying ignore policy, return the expected text and reach EOF. `test_decoding_keeps_the_underlying_error_policy` |
+| E-20 | Malformed unmarked bulk input retains the underlying ignore policy. `test_decoding_keeps_the_underlying_error_policy[unmarked-bulk]` |
+
+The contracts were added and executed before changing runtime code: 64 failures
+and 45 passes. Every failure was the reported UnicodeEncodeError from looking up a
+surrogate-containing policy. After the correction, all 152 focused codec and policy
+cases passed. The exact original P22 input also raises the required bounded
+LookupError. Public names, signatures and defaults remain unchanged.
+
+E-14 through E-20 were missing contracts for behavior the implementation already
+provided. Each exact reported mutation was injected separately into a scratch
+source copy. All seven failed the maintained contracts, with no collection errors
+or timeouts. The 22 targeted cases passed before mutation and after byte-for-byte
+source restoration:
+
+| Lens-e mutation | Failing contract |
+| --- | --- |
+| R07 | test_registered_error_handler_names_are_exact, mixed-case names |
+| R08 | test_registered_error_handler_names_are_exact, surrounding spaces |
+| R12 | test_decoding_keeps_the_underlying_fallback, bulk |
+| R14 | test_decoding_keeps_the_underlying_error_policy, marked bulk |
+| R15 | test_decoding_keeps_the_underlying_fallback, stream |
+| R16 | test_decoding_keeps_the_underlying_error_policy, marked and unmarked streams |
+| R18 | test_decoding_keeps_the_underlying_error_policy, unmarked bulk |
+
+Round-3 gates, each executed separately on CPython 3.14.6:
+
+| Command | Result |
+| --- | --- |
+| ruff format --check . | exit 0, 44 files |
+| ruff check . | exit 0 |
+| mypy --strict src | exit 0, 11 modules |
+| mypy --strict src tests | exit 0, 37 modules |
+| pytest --timeout=300 | exit 0, 663 passed, two platform skips |
+
+All eleven reference files were fetched again and verified against the manifest.
+The full suite enables ICU, Node.js, wheel-from-sdist installation, both installed
+CLI entry points and the live 0.2.0 upgrade. The existing Windows skips are POSIX
+file modes and real symlink creation; their portable contracts pass. No new
+interpreter matrix is claimed for this bounded correction. Every test has a
+300-second timeout; temporary files and caches stay under certification scratch.
+
+Evidence is retained in `sniffbom-cert/fix-r3`: `red.log`, `green.log`, `c008.log`,
+`mutation-results.json`, `baseline.log`, `R07.log`, `R08.log`, `R12.log`, `R14.log`,
+`R15.log`, `R16.log`, `R18.log`, `restored.log`, their JUnit XML reports, `fetch.log`,
+`final.log` and the final gate logs.

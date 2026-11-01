@@ -98,7 +98,7 @@ at EOF. Use bulk `decode` for that combination, or another stream error policy.
 | Wrong byte-input type, wrong `among` container or non-string item | `TypeError` |
 | Unknown `among` name | `ValueError` |
 | UTF-1, UTF-EBCDIC, SCSU or BOCU-1 passed to a decoder | `UnsupportedBomError`, a `LookupError` with `.encoding` |
-| Unknown or surrogate-containing codec name, unknown error handler | `LookupError` |
+| Unknown or surrogate-containing codec/error-handler name | `LookupError` |
 | Binary transform, `undefined` codec, or IDNA with errors other than `strict` | `LookupError` |
 | Punycode with errors other than `strict`, `replace` or `ignore` | `LookupError` |
 | GB18030 stream with `surrogateescape` | `LookupError` |
@@ -121,6 +121,7 @@ Binary transforms such as `base64_codec` are not supported. A mark overrides the
 default or fallback. `errors` is validated even for empty or already-valid text.
 Codec and error-policy string subclasses use their underlying plain string values
 throughout validation and decoding; overridden string methods do not change them.
+Registered error-handler names retain their exact case and whitespace.
 
 ## Command line
 

@@ -13,7 +13,7 @@ def validate_codec(codec: str, errors: str) -> tuple[str, str, str]:
     errors = str.__str__(errors)
     if "\x00" in codec or "\x00" in errors:
         raise ValueError("encoding and errors must not contain NUL")
-    if any("\ud800" <= char <= "\udfff" for char in codec):
+    if any("\ud800" <= char <= "\udfff" for name in (codec, errors) for char in name):
         raise LookupError("unknown encoding or error handler")
     try:
         info = codecs.lookup(codec)
