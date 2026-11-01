@@ -485,7 +485,7 @@ after recording the fix commit; that run is retained as `report-gates.json`,
 ## QA round 5 corrections
 
 Date: 2026-11-01. Reviewed head: `c86c369eed0a222861013b4584c4531685f31f31`.
-Fix commit: this commit (`fix qa round five findings`).
+Fix commit: `c7af6dfd15fcc11d6395937fb3c5833ace6bf111` (`fix qa round five findings`).
 Both reported findings are addressed; neither is disputed. Independent re-review
 of these corrections remains required.
 
@@ -539,4 +539,6 @@ interpreter matrix is claimed for this bounded correction. Every test has a
 
 Evidence is retained in `sniffbom-cert/fix-r5`: `before-mutation-results.json`,
 `after-mutation-results.json`, the `before-*` and `after-*` logs and JUnit reports,
-`fetch.log`, `final-gates.json`, `final-*.log` and `final.xml`.
+`fetch.log`, `final-gates.json`, `final-*.log` and `final.xml`. The gates also pass
+after recording the fix commit; that run is retained as `report-gates.json`,
+`report-*.log` and `report.xml`.
