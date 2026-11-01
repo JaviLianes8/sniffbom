@@ -108,6 +108,8 @@ def test_strip_follows_a_symlink(tmp_path: Path) -> None:
     try:
         os.symlink(target, link)
     except (OSError, NotImplementedError):
+        if os.environ.get("SNIFFBOM_REQUIRE_FILESYSTEM") == "1":
+            pytest.fail("filesystem certification requires real symlink creation")
         pytest.skip("this system does not let us create a symlink")
     assert main(["--strip", str(link)]) == 0
     assert link.is_symlink()

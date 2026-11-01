@@ -9,13 +9,20 @@ import sys
 import tempfile
 from collections.abc import Sequence
 from pathlib import Path
+from typing import NoReturn, TextIO
 
 from ._bom import strip
 from ._table import ENCODINGS, BomInfo, detect
 
 
+class _Parser(argparse.ArgumentParser):
+    def error(self, message: str) -> NoReturn:
+        safe = "unknown encoding name in among; use names from ENCODINGS"
+        super().error(safe if message == safe else "invalid arguments; use --help")
+
+
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
+    parser = _Parser(
         prog="sniffbom", description="Name, check for or strip the byte-order mark of files."
     )
     parser.add_argument("paths", nargs="+", metavar="PATH", help="files to read, - for stdin")
@@ -38,8 +45,8 @@ def _rewrite(path: Path, data: bytes) -> None:
     # leaves half a file. The mode is copied after the swap: a read-only temporary file
     # could not be replaced or removed on Windows.
     target = path.resolve()
-    handle, name = tempfile.mkstemp(dir=target.parent, prefix=f".{target.name}.")
     mode = target.stat().st_mode
+    handle, name = tempfile.mkstemp(dir=target.parent, prefix=".sniffbom-")
     try:
         with os.fdopen(handle, "wb") as out:
             out.write(data)
@@ -65,6 +72,17 @@ def _line(path: str, info: BomInfo | None, stripped: bool) -> str:
     return f"{path}: {verb}{info.encoding} ({info.length} bytes)"
 
 
+def _failure(path: str, error: OSError | ValueError) -> str:
+    label = path if len(path) <= 240 and path.isprintable() else "<invalid or oversized path>"
+    detail = error.strerror if isinstance(error, OSError) else "invalid path"
+    return f"sniffbom: {label}: {(detail or 'I/O error')[:160]}"
+
+
+def _print_report(message: str, out: TextIO) -> None:
+    encoding = getattr(out, "encoding", None) or "utf-8"
+    print(message.encode(encoding, "backslashreplace").decode(encoding), file=out)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """Run the command line and return its exit status."""
     parser = _parser()
@@ -86,7 +104,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             info = detect(data, among=among)
             stripped = False
             if args.strip:
-                # A malformed UTF-7 run cannot be shortened exactly and stays as it is.
+                # Stateful BOCU-1 and malformed UTF-7 cannot be shortened exactly.
                 new = strip(data, among=among)
                 stripped = new != data
                 if path == "-":
@@ -94,8 +112,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                     sys.stdout.buffer.flush()
                 elif stripped:
                     _rewrite(Path(path), new)
-        except OSError as error:
-            print(f"sniffbom: {path}: {error.strerror or error}", file=sys.stderr)
+        except (OSError, ValueError) as error:
+            _print_report(_failure(path, error), sys.stderr)
             failed = True
             continue
         found = found or info is not None
@@ -106,9 +124,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                 {"path": path, "encoding": encoding, "length": length, "stripped": stripped}
             )
         else:
-            print(_line(path, info, stripped), file=out)
+            _print_report(_line(path, info, stripped), out)
     if args.json:
-        print(json.dumps(report), file=out)
+        _print_report(json.dumps(report), out)
     if failed:
         return 2
     return 1 if args.check and found else 0

@@ -57,7 +57,7 @@ def test_among_ignores_marks_outside_the_set() -> None:
 
 
 def test_among_rejects_unknown_names() -> None:
-    with pytest.raises(ValueError, match="utf16le"):
+    with pytest.raises(ValueError, match="unknown encoding name"):
         detect(b"", among=["utf16le"])
 
 
@@ -100,9 +100,11 @@ def test_strip_removes_only_one_mark() -> None:
     assert strip(codecs.BOM_UTF8 * 2 + b"x") == codecs.BOM_UTF8 + b"x"
 
 
-@pytest.mark.parametrize(("mark", "encoding"), [(m, e) for m, e, _ in CASES if e != "utf-7"])
+@pytest.mark.parametrize(
+    ("mark", "encoding"), [(m, e) for m, e, _ in CASES if e not in ("utf-7", "bocu-1")]
+)
 def test_strip_removes_every_kind_of_mark(mark: bytes, encoding: str) -> None:
-    # UTF-7 marks share bits with the next character: tests/test_utf7.py covers them.
+    # Stateful BOCU-1 and UTF-7 have separate preservation contracts.
     assert strip(mark + b"x") == b"x"
 
 

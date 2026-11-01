@@ -4,10 +4,8 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import TypeAlias
 
-# Anything with the buffer protocol a caller is likely to hold.
-BytesLike: TypeAlias = bytes | bytearray | memoryview
+from ._buffer import BytesLike, byte_head
 
 # Ordered longest first on purpose: a UTF-32-LE mark (FF FE 00 00) begins with the
 # UTF-16-LE mark (FF FE), so the four-byte marks must be tested before the two-byte ones.
@@ -34,7 +32,12 @@ LONGEST = max(len(mark) for mark, _, _ in _MARKS)
 _CODECS: dict[str, str | None] = {name: codec for _, name, codec in _MARKS}
 
 ENCODINGS: tuple[str, ...] = tuple(dict.fromkeys(name for _, name, _ in _MARKS))
-"""Every encoding name `detect` can report, in the order the marks are tried."""
+"""Every encoding name `detect` can report, in the order the marks are tried.
+
+>>> from sniffbom import ENCODINGS
+>>> len(ENCODINGS), ENCODINGS[0]
+(11, 'utf-32-le')
+"""
 
 
 @dataclass(frozen=True)
@@ -44,6 +47,10 @@ class BomInfo:
     For UTF-7 the fourth byte of the mark also carries two bits of the next character
     unless the mark is ``+/v8-``, so slicing ``data[length:]`` is only exact for that
     form; `strip` handles every form.
+
+    >>> from sniffbom import BomInfo
+    >>> BomInfo("utf-8", 3).codec
+    'utf-8'
     """
 
     encoding: str
@@ -51,30 +58,42 @@ class BomInfo:
 
     @property
     def codec(self) -> str | None:
-        """The Python codec that reads this encoding, or ``None`` if Python has none."""
+        """The Python codec that reads this encoding, or ``None`` if Python has none.
+
+        >>> from sniffbom import BomInfo
+        >>> BomInfo("scsu", 3).codec is None
+        True
+        """
         return _CODECS.get(self.encoding)
 
 
 def _marks(among: Iterable[str] | None) -> tuple[tuple[bytes, str, str | None], ...]:
     if among is None:
         return _MARKS
-    if isinstance(among, (str, bytes)):
+    if isinstance(among, (str, bytes, bytearray, memoryview)):
         raise TypeError("among must be a collection of encoding names, not a single string")
-    wanted = set(among)
-    unknown = sorted(wanted - set(ENCODINGS))
-    if unknown:
-        raise ValueError(f"unknown encoding names: {', '.join(unknown)}; known: {ENCODINGS}")
+    wanted: set[str] = set()
+    for name in among:
+        if not isinstance(name, str):
+            raise TypeError("among must contain encoding names as strings")
+        if name not in ENCODINGS:
+            raise ValueError("unknown encoding name in among; use names from ENCODINGS")
+        wanted.add(name)
     return tuple(entry for entry in _MARKS if entry[1] in wanted)
 
 
 def detect(data: BytesLike, *, among: Iterable[str] | None = None) -> BomInfo | None:
-    """Return the byte-order mark at the start of ``data``, or ``None`` if there is none.
+    r"""Return the byte-order mark at the start of ``data``, or ``None`` if there is none.
 
     ``among`` limits the search to some names of `ENCODINGS`; pass
     ``("utf-8", "utf-16-le", "utf-16-be")`` to read ``FF FE 00 00`` as UTF-16LE followed
     by NUL, the way the WHATWG Encoding Standard does, instead of as UTF-32LE.
+
+    >>> from sniffbom import detect
+    >>> detect(b"\xef\xbb\xbfhi")
+    BomInfo(encoding='utf-8', length=3)
     """
-    head = bytes(data[:LONGEST])
+    head = byte_head(data, LONGEST)
     for mark, encoding, _ in _marks(among):
         if head.startswith(mark):
             return BomInfo(encoding=encoding, length=len(mark))
@@ -82,10 +101,14 @@ def detect(data: BytesLike, *, among: Iterable[str] | None = None) -> BomInfo | 
 
 
 def needs_more(data: BytesLike, *, among: Iterable[str] | None = None) -> bool:
-    """Return whether more bytes after ``data`` could change what `detect` returns.
+    r"""Return whether more bytes after ``data`` could change what `detect` returns.
 
     ``FF FE`` needs more (it may become UTF-32LE), ``FF FE 41`` does not. A stream reader
     keeps reading until this is false or the stream ends, then calls `detect`.
+
+    >>> from sniffbom import needs_more
+    >>> needs_more(b"\xff\xfe"), needs_more(b"plain")
+    (True, False)
     """
-    head = bytes(data[:LONGEST])
+    head = byte_head(data, LONGEST)
     return any(len(head) < len(mark) and mark.startswith(head) for mark, _, _ in _marks(among))

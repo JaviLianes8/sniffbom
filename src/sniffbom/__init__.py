@@ -8,7 +8,13 @@ from ._table import ENCODINGS, BomInfo, detect, needs_more
 from ._whatwg import WhatwgEncoding, bom_sniff, whatwg_decode
 from ._xml import XmlFamily, XmlGuess, xml_autodetect
 
-__version__ = "0.2.0"
+__version__ = "1.0.0"
+
+BomInfo.__module__ = __name__
+XmlGuess.__module__ = __name__
+UnsupportedBomError.__module__ = __name__
+
+del annotations
 
 __all__ = [
     "ENCODINGS",

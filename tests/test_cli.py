@@ -72,8 +72,12 @@ def test_strip_rewrites_in_place_and_keeps_the_rest(
     ]
 
 
-@pytest.mark.skipif(os.name == "nt", reason="file modes are POSIX")
+@pytest.mark.skipif(
+    os.name == "nt" and os.environ.get("SNIFFBOM_REQUIRE_FILESYSTEM") != "1",
+    reason="file modes are POSIX",
+)
 def test_strip_keeps_the_file_mode(files: dict[str, Path]) -> None:
+    assert os.name == "posix", "filesystem certification requires POSIX file modes"
     files["marked"].chmod(0o751)
     main(["--strip", str(files["marked"])])
     assert files["marked"].stat().st_mode & 0o777 == 0o751
@@ -98,7 +102,7 @@ def test_unknown_among_name_is_a_usage_error(capsys: pytest.CaptureFixture[str])
     with pytest.raises(SystemExit) as caught:
         main(["--among", "utf16", "x"])
     assert caught.value.code == 2
-    assert "utf16" in capsys.readouterr().err
+    assert "unknown encoding name" in capsys.readouterr().err
 
 
 def test_missing_file_exits_two_and_goes_on(
