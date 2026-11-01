@@ -30,7 +30,7 @@ Progress:
 | 7 | PASS | Eleven live-fetched references checked by hash; Node.js and Python codecs run as independent references |
 | 8 | PASS | Fresh venv, installed wheel, both CLI entry points by subprocess, live 0.2.0 upgraded in place and old result pickles loaded |
 | 9 | PASS | 14,000 codec round trips, 8,000 arbitrary byte cases, 6,000 Node.js comparisons, five scaling dimensions |
-| 10 | PASS | Seven distinct interpreter builds covering 3.10 to 3.14 and free-threaded 3.14 |
+| 10 | PASS | Current wheel: 1170 passed on each of seven distinct builds covering 3.10 to 3.14 and free-threaded 3.14 |
 | 11 | PASS | Absolute README links, problem and honest alternatives, guide and changelog, exact certification badge; twine check --strict |
 | 12 | PASS | CHANGELOG 1.0.0 dated 2026-11-01 |
 | 13 | PASS | Version 1.0.0, Production/Stable, Python 3.10 to 3.14, MIT, project URLs, keywords, no runtime dependencies |
@@ -39,7 +39,7 @@ Progress:
 | 16 | PENDING | No independent reviewer verdict recorded |
 | 17 | PENDING | Release branch prepared; merge and publication remain pending |
 | 18 | PASS | 24 initial mutations caught; both round-5 survivors now caught by maintained contracts |
-| 19 | PENDING | Round 2: a, b and d PASS; round 4: c PASS; round-5 e corrections below await independent re-review |
+| 19 | PENDING | c PASS remains applicable; a, b and d need recheck after later runtime changes; round-5 e corrections await independent re-review |
 
 ## API review and upgrade
 
@@ -194,8 +194,10 @@ environments are confined to the dedicated certification scratch directory.
 
 ## Review status
 
-Round 2 passed the API/docs, correctness and packaging lenses on the reviewed head.
-Round 4 passed the robustness lens. Round 5 confirmed all three round-4
+Round 2 passed the API/docs, correctness and packaging lenses at 1802b7f. Later
+runtime changes affect their reviewed codec paths, so those three verdicts require
+recheck for the current head. Round 4 passed the robustness lens at dd815dd; its
+runtime source remains unchanged. Round 5 confirmed all three round-4
 contract-strength fixes. Its two new contract findings are corrected below and
 await independent re-review. Items 16 and 19 remain open. Merge and publication
 have not been performed.
@@ -542,3 +544,50 @@ Evidence is retained in `sniffbom-cert/fix-r5`: `before-mutation-results.json`,
 `fetch.log`, `final-gates.json`, `final-*.log` and `final.xml`. The gates also pass
 after recording the fix commit; that run is retained as `report-gates.json`,
 `report-*.log` and `report.xml`.
+
+## Resumed preparation verification
+
+Date: 2026-11-01. Starting head: `b017c77f6fc55bfa4c78c845b1138d057a44c2c1`.
+The release branch was clean and already pushed. Earlier completed work and all
+mutation evidence are retained. This preparation update changes only this report.
+
+The interpreter matrix was refreshed because its earlier runs preceded the final
+codec correction. The round-5 wheel and sdist match every current packaged file
+byte for byte. Their file lists were inspected again and both pass
+`twine check --strict`. PyPI's JSON endpoint still reports 0.2.0. All eleven
+reference files were fetched live again and match the tracked manifest hashes.
+
+Each interpreter received a fresh venv with the current wheel. The suite ran from
+the extracted sdist with its source directory moved out of the import path and
+`python -I`; imports resolve to site-packages. Both installed CLI entry points
+passed separate subprocess checks. ICU, Node.js and fetched-source checks ran.
+
+| Interpreter | Current wheel suite |
+| --- | --- |
+| CPython 3.10.22 | 1170 passed, 3 skipped |
+| CPython 3.11.18 | 1170 passed, 3 skipped |
+| CPython 3.12.16 | 1170 passed, 3 skipped |
+| CPython 3.13.18 | 1170 passed, 3 skipped |
+| CPython 3.14.6 | 1170 passed, 3 skipped |
+| CPython 3.14.10 | 1170 passed, 3 skipped |
+| CPython 3.14.10t | 1170 passed, 3 skipped |
+
+The matrix skips rebuilding the wheel, which runs in the full gate below, and the
+same two unavailable Windows filesystem checks. Launcher entries still point to
+thirteen removed installations; scratch interpreter aliases resolve to the seven
+distinct builds above. No supported minor version is untested.
+
+Final gates each exit 0: `ruff format --check .` (44 files), `ruff check .`,
+`mypy --strict src` (11 modules), `mypy --strict src tests` (37 modules) and
+`pytest --timeout=300` (1171 passed, two platform skips). This full run includes
+the wheel built from sdist, fresh installation, both CLI entry points and upgrade
+from the actual PyPI 0.2.0 release. All temporary files and caches remain under
+the certification scratch directory.
+
+Evidence is retained in `sniffbom-cert/preparation-resume`: `verify.py`,
+`matrix.json`, `pytest-*.log`, `artifacts.json`, both archive listings, `twine.log`,
+`pypi.json`, `fetch.log`, `final-gates.json`, `final-*.log` and `final.xml`.
+Only lens c's existing PASS remains applicable to the unchanged runtime source.
+Lenses a, b and d require recheck after the later codec changes; lens e's latest
+corrections and the independent reviewer remain pending. PR #3 remains open;
+merge and publication have not been performed.
