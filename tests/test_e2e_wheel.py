@@ -54,10 +54,19 @@ print("e2e ok")
 
 
 def _run(
-    *cmd: str | Path, cwd: Path | None = None, stdin: bytes = b""
+    *cmd: str | Path,
+    cwd: Path | None = None,
+    stdin: bytes = b"",
+    env: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess[bytes]:
     return subprocess.run(
-        [str(c) for c in cmd], cwd=cwd, input=stdin, capture_output=True, check=False, timeout=240
+        [str(c) for c in cmd],
+        cwd=cwd,
+        input=stdin,
+        env=env,
+        capture_output=True,
+        check=False,
+        timeout=240,
     )
 
 
@@ -145,6 +154,25 @@ def test_installed_wheel_end_to_end(tmp_path: Path) -> None:
         missing = _run(*command, work / "missing", cwd=work)
         assert missing.returncode == 2 and b"sniffbom:" in missing.stderr
         assert _run(*command, "--help", cwd=work).returncode == 0
+        for mode in ([], ["--check"], ["--strip"]):
+            for prefix in (b"", b"\xef\xbb\xbf"):
+                paths = [work / "\U0001f680.txt", work / "second.txt"]
+                for path in paths:
+                    path.write_bytes(prefix + b"hello")
+                redirected = _run(
+                    *command,
+                    *mode,
+                    *paths,
+                    cwd=work,
+                    env={**os.environ, "PYTHONIOENCODING": "cp1252:strict"},
+                )
+                expected_status = 1 if mode == ["--check"] and prefix else 0
+                assert redirected.returncode == expected_status, redirected.stderr
+                assert redirected.stderr == b""
+                assert len(redirected.stdout.splitlines()) == 2
+                assert b"\\U0001f680.txt" in redirected.stdout
+                expected_data = b"hello" if mode == ["--strip"] else prefix + b"hello"
+                assert all(path.read_bytes() == expected_data for path in paths)
     stripped = _run(commands[-1][0], *commands[-1][1:], "--strip", marked, cwd=work)
     assert stripped.returncode == 0, stripped.stderr
     assert marked.read_bytes() == b"hi"

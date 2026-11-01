@@ -16,6 +16,26 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- BOCU-1 stripping now leaves the entire input unchanged, including through the CLI,
+  because removing its signature would corrupt the retained decoder state. Reports
+  keep `stripped=false` for these inputs.
+- UTF-7 streams reject shifted runs longer than 65536 base64 bytes with a bounded
+  `UnicodeError`, during setup or reading, to bound incremental decoder work.
+  Bulk `decode` and `strip` retain their unrestricted run lengths.
+- GB18030 streams reject `surrogateescape` with a bounded `LookupError` because
+  Python's incremental decoder can leave text buffered after EOF. Bulk decoding
+  and other stream error policies remain available.
+- Surrogate-containing codec names raise bounded `LookupError`. The built-in
+  `undefined` codec, non-strict IDNA and unsupported Punycode error policies also
+  raise bounded `LookupError`.
+  Fallback documentation now requires replacement compatibility and describes
+  propagated built-in codec errors.
+- Streams reject readers lacking callable `read` or `close` with bounded `TypeError`
+  before consuming input, including when `among` is empty.
+- `UnsupportedBomError` normalizes string subclasses to plain strings for its
+  `.encoding` attribute and uses only canonical names in its redacted message.
+- CLI reports escape characters unsupported by the output encoding, preserving
+  exit statuses and processing all paths when output is redirected.
 - Byte inputs consistently reject integers and integer iterables with `TypeError`;
   only `bytes`, `bytearray` and `memoryview` are accepted. Buffer contents are used
   directly, including wide-item and multidimensional views and bytes subclasses.

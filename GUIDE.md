@@ -25,8 +25,9 @@ print(repr(decode(b"\xef\xbb\xbfhi", among=())))
 
 `bom_sniff` returns the WHATWG names `UTF-8`, `UTF-16BE`, `UTF-16LE`, or `None`.
 `whatwg_decode` applies that BOM precedence, skips one mark and uses Python codecs
-with replacement. Its fallback is a Python text codec name, not a WHATWG label;
-legacy decoding and label aliases can differ from a browser. In particular Python's
+with replacement. Its fallback must be a Python text codec supporting `replace`,
+not a WHATWG label; IDNA and `undefined` are rejected with `LookupError`.
+Legacy decoding and label aliases can differ from a browser. In particular Python's
 `latin-1` preserves U+0080, while the browser label selects Windows-1252.
 
 `xml_autodetect` classifies a complete prefix or entity using XML 1.0 Appendix F.1.
@@ -48,11 +49,13 @@ validation. `BomInfo.codec` maps known names to a Python codec, or returns `None
 for unsupported or unknown names. `WhatwgEncoding` and `XmlFamily` are literal type
 aliases, not runtime validators. `__version__` is release metadata outside `__all__`.
 
-Only a leading mark counts. Exactly one mark is removed, so a second encoded U+FEFF
-is retained. UTF-7 shares the mark's last byte with the next character: use `strip`,
+Only a leading mark counts. When stripping succeeds, exactly one mark is removed,
+so a second U+FEFF is retained. UTF-7 shares the mark's last byte with the next character: use `strip`,
 not `data[info.length:]`. A valid base64 run is re-encoded without its first U+FEFF;
 a run with invalid padding bits stays unchanged. Detecting a signature does not
-prove that the remaining bytes are valid text.
+prove that the remaining bytes are valid text. BOCU-1 stripping is refused by returning
+the entire input unchanged: its signature establishes decoder state required by the
+following bytes. Use a BOCU-1 decoder to remove the initial U+FEFF as text.
 
 ## Streams
 
@@ -80,6 +83,14 @@ This is a blocking-stream interface. `None` before the mark is decided raises
 retry setup on the same partially consumed reader; buffer externally if necessary.
 For sockets pass `sock.makefile("rb")`. An empty `among` bypasses sniffing entirely.
 
+UTF-7 streams limit each shifted run to 65536 base64 bytes, excluding the opening `+`
+and terminator. Longer runs raise a bounded `UnicodeError` during setup or reading,
+including when UTF-7 is selected by a default alias. This bounds the work of Python's
+incremental decoder, which repeatedly scans unfinished runs. Bulk `decode` and `strip`
+do not impose this limit. GB18030 with `errors="surrogateescape"` is rejected with
+`LookupError`: Python's incremental decoder can retain an ASCII digit after a read-all
+at EOF. Use bulk `decode` for that combination, or another stream error policy.
+
 ## Errors
 
 | Condition | Exception |
@@ -87,19 +98,27 @@ For sockets pass `sock.makefile("rb")`. An empty `among` bypasses sniffing entir
 | Wrong byte-input type, wrong `among` container or non-string item | `TypeError` |
 | Unknown `among` name | `ValueError` |
 | UTF-1, UTF-EBCDIC, SCSU or BOCU-1 passed to a decoder | `UnsupportedBomError`, a `LookupError` with `.encoding` |
-| Unknown codec or error handler | `LookupError` |
+| Unknown or surrogate-containing codec name, unknown error handler | `LookupError` |
+| Binary transform, `undefined` codec, or IDNA with errors other than `strict` | `LookupError` |
+| Punycode with errors other than `strict`, `replace` or `ignore` | `LookupError` |
+| GB18030 stream with `surrogateescape` | `LookupError` |
+| Reader without callable `read` and `close` methods | `TypeError`, before reading |
 | Non-string codec/error handler | `TypeError` |
 | NUL inside a codec/error-handler name | `ValueError` |
 | Invalid newline type or value | `TypeError` or `ValueError` |
-| Invalid encoded text with strict decoding | `UnicodeDecodeError` |
+| Invalid encoded text | Codec exception, usually `UnicodeDecodeError`, sometimes `UnicodeError` |
+| UTF-7 stream shifted run above 65536 base64 bytes | Bounded `UnicodeError` |
 | Undecided non-blocking stream | `BlockingIOError` |
 
 Lookup and validation messages do not quote supplied option values. Standard Python
 codec errors retain their usual typed attributes, including the input bytes in
-`UnicodeDecodeError.object`. Custom registered codecs, error handlers and readers
-can raise their own exceptions. Fallbacks must be text codecs; binary transforms
-such as `base64_codec` are not supported. A mark overrides the unused default or
-fallback. `errors` is validated even for empty or already-valid text.
+`UnicodeDecodeError.object`. Built-in codecs can also raise `UnicodeError` (for example,
+strict IDNA on an invalid label). These exceptions propagate, as do exceptions from
+custom codecs, error handlers and readers. Fallbacks must be text codecs compatible
+with the requested error policy; `whatwg_decode` always requests `replace`. Its U+FFFD
+replacement guarantee covers UTF-8/16, while other codecs follow Python's behavior.
+Binary transforms such as `base64_codec` are not supported. A mark overrides the unused
+default or fallback. `errors` is validated even for empty or already-valid text.
 
 ## Command line
 
@@ -112,13 +131,15 @@ the bytes go to stdout and reports to stderr. Other errors return 2 and processi
 continues with later paths. File contents are never included in diagnostics.
 Usage errors omit supplied arguments. Error paths longer than 240 characters or
 containing control characters are replaced by a placeholder; OS messages are capped
-at 160 characters. Binary transform codecs are refused even on empty input.
+at 160 characters. Characters unsupported by the report stream's encoding are escaped
+with backslashes. Binary stdin output is unchanged by report escaping.
 
 Stripping writes beside the target and replaces it, following a symlink. File mode
 is retained, but timestamps, hard-link identity and other metadata are not promised.
 Read-only targets may be replaceable on POSIX and refused on Windows. No durability
-guarantee is made across power loss. Malformed UTF-7 runs stay unchanged and are not
-reported as stripped.
+guarantee is made across power loss. Malformed UTF-7 runs and all BOCU-1 inputs stay
+unchanged and are not reported as stripped (`stripped=false` in JSON). This refusal
+returns status 0; `--check` still returns 1 for these marks.
 
 ## Upgrading from 0.2.0
 

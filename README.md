@@ -59,6 +59,7 @@ except UnsupportedBomError as error:
 
 UTF-1, UTF-EBCDIC, SCSU and BOCU-1 are recognised and named, but Python has no codec for
 them, so `decode` raises `UnsupportedBomError` and `BomInfo.codec` is `None`.
+`strip` leaves BOCU-1 unchanged because its signature establishes decoder state.
 
 ### Which rule reads `FF FE 00 00`?
 
@@ -85,6 +86,8 @@ print(repr(decode(b"\xef\xbb\xbfabc", among=())))
 "decode" algorithm. The fallback is a Python text codec name, not a browser encoding
 label: for example, `latin-1` means Python Latin-1, not Windows-1252. This is not a full
 implementation of WHATWG legacy decoders. Malformed UTF-8 and UTF-16 become U+FFFD.
+Fallbacks must support `errors="replace"`; IDNA and `undefined` raise `LookupError`.
+Other codec exceptions, including built-in `UnicodeError`, propagate.
 
 ### Streams and partial reads
 
@@ -106,6 +109,9 @@ returns a text stream with the mark consumed, so it works on pipes and on socket
 `sock.makefile("rb")`. A non-blocking stream that has no data before the mark is decided
 raises `BlockingIOError` rather than guessing. Decoding a UTF-7 mark can read beyond
 the five-byte sniffing prefix because the mark shares a base64 run with later text.
+Each UTF-7 shifted run is limited to 65536 base64 bytes; longer runs raise
+`UnicodeError`. GB18030 streams with `surrogateescape` raise `LookupError` because
+Python can leave text buffered at EOF; use bulk `decode` for that combination.
 
 ### XML entities
 
@@ -135,15 +141,16 @@ sniffbom --among utf-8 FILE   # only look for some marks
 
 Exit status: 0 when done, 1 when `--check` finds a mark, 2 on a usage or read error.
 `--strip` writes the new content next to the file and swaps it in (following a symlink to
-its target, keeping the mode); a malformed UTF-7 run it cannot shorten exactly is left as
-it is. When stdin is stripped to stdout, the report goes to stderr.
+its target, keeping the mode). BOCU-1 and malformed UTF-7 stay unchanged and are not
+reported as stripped. When stdin is stripped to stdout, the report goes to stderr.
+Reports escape characters unsupported by the output encoding.
 
 ## API
 
 | Name | What it does |
 | --- | --- |
 | `detect(data, *, among=None)` | The leading mark as a `BomInfo`, or `None` |
-| `strip(data, *, among=None)` | `data` without one leading mark, exact for UTF-7 too |
+| `strip(data, *, among=None)` | Remove one mark; preserve BOCU-1 and malformed UTF-7 |
 | `decode(data, default="utf-8", *, errors="strict", among=None)` | Text with the mark consumed |
 | `needs_more(data, *, among=None)` | Whether more bytes could change `detect` |
 | `text_stream(binary, default="utf-8", *, errors, among, newline)` | A text stream without the mark |

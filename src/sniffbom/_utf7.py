@@ -5,6 +5,25 @@ from __future__ import annotations
 _BASE64 = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 
 
+class Utf7RunGuard:
+    """Bound the pending run repeatedly scanned by Python's incremental decoder."""
+
+    def __init__(self) -> None:
+        self._run: int | None = None
+
+    def check(self, data: bytes) -> None:
+        for byte in data:
+            if self._run is None:
+                if byte == ord("+"):
+                    self._run = 0
+            elif byte in _BASE64:
+                self._run += 1
+                if self._run > 65536:
+                    raise UnicodeError("UTF-7 shifted run exceeds 65536 bytes")
+            else:
+                self._run = None
+
+
 def strip_utf7(data: bytes) -> bytes:
     """Return ``data`` (which starts with a UTF-7 mark) without the encoded U+FEFF.
 

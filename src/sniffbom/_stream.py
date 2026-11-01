@@ -9,6 +9,7 @@ from typing import Protocol
 from ._bom import codec_for
 from ._codec import validate_codec
 from ._table import LONGEST, _marks, detect, needs_more
+from ._utf7 import Utf7RunGuard
 
 
 class _Reader(Protocol):
@@ -22,22 +23,25 @@ class _Reader(Protocol):
 class _Prefixed(io.RawIOBase):
     """A raw reader that serves the already read ``head`` and then the inner stream."""
 
-    def __init__(self, head: bytes, inner: _Reader) -> None:
+    def __init__(self, head: bytes, inner: _Reader, *, utf7: bool = False) -> None:
         self._head = head
         self._inner = inner
+        self._guard = Utf7RunGuard() if utf7 else None
 
     def readable(self) -> bool:
         return True
 
     def readinto(self, buffer: memoryview) -> int | None:  # type: ignore[override]
+        chunk: bytes | None
         if self._head:
-            count = min(len(buffer), len(self._head))
-            buffer[:count] = self._head[:count]
-            self._head = self._head[count:]
-            return count
-        chunk = self._inner.read(len(buffer))
+            chunk = self._head[: len(buffer)]
+            self._head = self._head[len(chunk) :]
+        else:
+            chunk = self._inner.read(len(buffer))
         if chunk is None:
             return None
+        if self._guard is not None:
+            self._guard.check(chunk)
         buffer[: len(chunk)] = chunk
         return len(chunk)
 
@@ -63,6 +67,9 @@ def text_stream(
     mark names an encoding Python cannot decode (the bytes read so far are then gone from
     ``binary``), and `BlockingIOError` when a non-blocking stream has no data yet before
     the mark is decided.
+    Invalid reader capabilities raise `TypeError` before reading. UTF-7 shifted runs
+    above 65536 base64 bytes raise `UnicodeError` during setup or reading. GB18030
+    with ``surrogateescape`` raises `LookupError`: Python may leave text buffered at EOF.
 
     >>> import io
     >>> from sniffbom import text_stream
@@ -70,6 +77,8 @@ def text_stream(
     ...     stream.read()
     'hi'
     """
+    if not callable(getattr(binary, "read", None)) or not callable(getattr(binary, "close", None)):
+        raise TypeError("binary must provide callable read and close methods")
     if newline is not None and not isinstance(newline, str):
         raise TypeError("newline must be a string or None")
     if newline not in (None, "", "\n", "\r", "\r\n"):
@@ -85,10 +94,12 @@ def text_stream(
         head += chunk
     info = detect(head, among=marks)
     codec = default if info is None else codec_for(info)
-    validate_codec(codec, errors)
+    canonical = validate_codec(codec, errors)
+    if canonical == "gb18030" and errors == "surrogateescape":
+        raise LookupError("GB18030 streams do not support surrogateescape")
     if info is not None and info.encoding != "utf-7":
         head = head[info.length :]
-    reader = io.BufferedReader(_Prefixed(head, binary))
+    reader = io.BufferedReader(_Prefixed(head, binary, utf7=canonical == "utf-7"))
     text = io.TextIOWrapper(reader, encoding=codec, errors=errors, newline=newline)
     if info is not None and info.encoding == "utf-7":
         # A UTF-7 mark may share its last byte with the next character, so it cannot be

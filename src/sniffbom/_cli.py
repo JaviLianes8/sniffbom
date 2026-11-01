@@ -9,7 +9,7 @@ import sys
 import tempfile
 from collections.abc import Sequence
 from pathlib import Path
-from typing import NoReturn
+from typing import NoReturn, TextIO
 
 from ._bom import strip
 from ._table import ENCODINGS, BomInfo, detect
@@ -78,6 +78,11 @@ def _failure(path: str, error: OSError | ValueError) -> str:
     return f"sniffbom: {label}: {(detail or 'I/O error')[:160]}"
 
 
+def _print_report(message: str, out: TextIO) -> None:
+    encoding = getattr(out, "encoding", None) or "utf-8"
+    print(message.encode(encoding, "backslashreplace").decode(encoding), file=out)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """Run the command line and return its exit status."""
     parser = _parser()
@@ -99,7 +104,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             info = detect(data, among=among)
             stripped = False
             if args.strip:
-                # A malformed UTF-7 run cannot be shortened exactly and stays as it is.
+                # Stateful BOCU-1 and malformed UTF-7 cannot be shortened exactly.
                 new = strip(data, among=among)
                 stripped = new != data
                 if path == "-":
@@ -108,7 +113,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 elif stripped:
                     _rewrite(Path(path), new)
         except (OSError, ValueError) as error:
-            print(_failure(path, error), file=sys.stderr)
+            _print_report(_failure(path, error), sys.stderr)
             failed = True
             continue
         found = found or info is not None
@@ -119,9 +124,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                 {"path": path, "encoding": encoding, "length": length, "stripped": stripped}
             )
         else:
-            print(_line(path, info, stripped), file=out)
+            _print_report(_line(path, info, stripped), out)
     if args.json:
-        print(json.dumps(report), file=out)
+        _print_report(json.dumps(report), out)
     if failed:
         return 2
     return 1 if args.check and found else 0

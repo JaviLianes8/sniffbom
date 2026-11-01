@@ -45,7 +45,9 @@ def whatwg_decode(data: BytesLike, fallback: str = "utf-8") -> str:
     r"""Decode ``data`` the way the WHATWG "decode" algorithm does.
 
     A mark found by `bom_sniff` wins over ``fallback`` (a Python codec name) and is
-    skipped; anything malformed becomes U+FFFD instead of raising.
+    skipped. Malformed UTF-8/16 becomes U+FFFD. Fallbacks must support replacement;
+    IDNA and the undefined codec raise a bounded `LookupError`. Other codec exceptions
+    propagate, including `UnicodeError` from built-in codecs.
 
     >>> from sniffbom import whatwg_decode
     >>> whatwg_decode(b"\xef\xbb\xbfa\xff") == "a\ufffd"

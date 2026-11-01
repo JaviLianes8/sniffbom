@@ -24,7 +24,8 @@ class UnsupportedBomError(LookupError):
     def __init__(self, encoding: str) -> None:
         if not isinstance(encoding, str):
             raise TypeError("encoding must be a string")
-        name = encoding if encoding in ENCODINGS else "an unknown encoding"
+        encoding = str.__str__(encoding)
+        name = next((name for name in ENCODINGS if name == encoding), "an unknown encoding")
         super().__init__(f"the byte-order mark names {name}, which Python cannot decode")
         self.encoding = encoding
 
@@ -43,6 +44,8 @@ def strip(data: BytesLike, *, among: Iterable[str] | None = None) -> bytes:
     r"""Return ``data`` without its leading byte-order mark, unchanged if it has none.
 
     Only one mark is removed. ``among`` limits which marks count, as in `detect`.
+    BOCU-1 is left unchanged because removing its mark would discard decoder state.
+    Malformed UTF-7 runs are also left unchanged.
 
     >>> from sniffbom import strip
     >>> strip(b"\xef\xbb\xbfhello")
@@ -50,7 +53,7 @@ def strip(data: BytesLike, *, among: Iterable[str] | None = None) -> bytes:
     """
     data = byte_data(data)
     info = detect(data, among=among)
-    if info is None:
+    if info is None or info.encoding == "bocu-1":
         return data
     if info.encoding == "utf-7":
         return strip_utf7(data)

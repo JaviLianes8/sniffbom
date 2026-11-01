@@ -17,3 +17,8 @@ pip install -r requirements-dev.txt
 - One logical change per commit, imperative subject line.
 
 Open an issue first if the change is large or shifts the public API.
+
+Filesystem certification must also run on POSIX with real symlink support and
+`SNIFFBOM_REQUIRE_FILESYSTEM=1`. That setting makes unavailable mode and symlink
+checks fail instead of skip. The portable replacement and alias models run on every
+platform and supplement, rather than replace, those real filesystem checks.

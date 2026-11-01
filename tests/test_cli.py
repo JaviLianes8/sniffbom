@@ -72,8 +72,12 @@ def test_strip_rewrites_in_place_and_keeps_the_rest(
     ]
 
 
-@pytest.mark.skipif(os.name == "nt", reason="file modes are POSIX")
+@pytest.mark.skipif(
+    os.name == "nt" and os.environ.get("SNIFFBOM_REQUIRE_FILESYSTEM") != "1",
+    reason="file modes are POSIX",
+)
 def test_strip_keeps_the_file_mode(files: dict[str, Path]) -> None:
+    assert os.name == "posix", "filesystem certification requires POSIX file modes"
     files["marked"].chmod(0o751)
     main(["--strip", str(files["marked"])])
     assert files["marked"].stat().st_mode & 0o777 == 0o751

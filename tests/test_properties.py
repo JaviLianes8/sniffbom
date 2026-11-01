@@ -57,7 +57,9 @@ def test_arbitrary_bytes_match_signature_oracle_and_do_not_crash(seed: int) -> N
         assert isinstance(bom_sniff(data), (str, type(None)))
         assert isinstance(whatwg_decode(data), str)
         assert xml_autodetect(data).bom_length <= len(data)
-        if expected is not None and expected.encoding != "utf-7":
+        if expected is not None and expected.encoding == "bocu-1":
+            assert stripped == data
+        elif expected is not None and expected.encoding != "utf-7":
             assert stripped == data[expected.length :]
         with suppress(UnicodeDecodeError, UnsupportedBomError):
             decode(data)

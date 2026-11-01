@@ -39,7 +39,7 @@ Progress:
 | 16 | PENDING | No independent reviewer verdict recorded |
 | 17 | PENDING | Release branch prepared; merge and publication remain pending |
 | 18 | PASS | 24 isolated mutations, 24 caught, no survivors; table below |
-| 19 | PENDING | No QA lens verdicts recorded |
+| 19 | PENDING | Round 1: five FAIL verdicts; corrections below await independent re-review |
 
 ## API review and upgrade
 
@@ -196,3 +196,85 @@ environments are confined to the dedicated certification scratch directory.
 
 No QA lens or independent reviewer has passed this release yet. Items 16 and 19
 remain open. Merge and publication have not been performed.
+
+## QA round 1 corrections
+
+Date: 2026-11-01. Reviewed head: `19552074c06917cd817e9833715fa211a1572bfc`.
+Fix commit: `fix qa round one findings` (the commit introducing this section).
+All five initial lenses reported FAIL. All 18 findings are addressed below; no
+finding is disputed. Independent re-review remains required before certification.
+
+| Finding | Correction and maintained evidence |
+| --- | --- |
+| A-01 | Surrogate codec names raise bounded LookupError in all three decoders; detected marks override unused names. `test_codec_contracts.py` |
+| A-02 | README, GUIDE and WHATWG docstring require replacement compatibility and describe propagated built-in codec exceptions. |
+| B-001 | BOCU-1 stripping returns the original bytes, preserving state and both U+FEFF characters. ICU independently encodes and decodes API, file CLI and stdin CLI cases; JSON reports stripped=false. `test_bocu1.py` |
+| C-001 | UTF-7 streams reject runs above 65536 base64 bytes with bounded UnicodeError. Tests cover marked/default codecs, later runs, chunk boundaries and finite input consumption. `test_stream_limits.py` |
+| C-002 | GB18030 streams reject surrogateescape with bounded LookupError; bulk decoding remains available. EOF repro, empty input, aliases and mark override covered. `test_stream_limits.py` |
+| C-003 | Reject undefined, non-strict IDNA and unsupported Punycode policies with bounded LookupError. Compatible policies remain supported; docs describe propagated codec errors. `test_codec_contracts.py` |
+| C-004 | Normalize string subclasses and format only canonical names; supplied fields remain available as plain strings. Equality and formatting hooks cannot disclose the canary. `test_codec_contracts.py` |
+| C-005 | Validate callable read/close before consumption, including empty among; bounded TypeError. `test_stream_limits.py` |
+| C-006, D1 | Escape unrepresentable report characters. Redirected cp1252 inspection, check and multi-file strip run against source and both installed entry points, with marked/unmarked inputs. `test_cli_unicode.py`, `test_e2e_wheel.py` |
+| E-01 | Exact bytes type on empty, unmarked and filtered inputs for every supported buffer type. `test_contract_boundaries.py` |
+| E-02 | XmlGuess preserves all supplied fields, including negative lengths. `test_contract_boundaries.py` |
+| E-03 | Empty among performs zero setup reads, even with a reader that fails if called. `test_contract_boundaries.py` |
+| E-04 | Check status remembers a marked file in either file order. `test_contract_boundaries.py` |
+| E-05 | Exact diagnostic path boundary at 240/241 characters. `test_contract_boundaries.py` |
+| E-06 | Exact 160-character message cap at lengths 160, 161 and 10000. `test_contract_boundaries.py` |
+| E-07 | Portable replacement model enforces mode restoration. Real POSIX test remains required through SNIFFBOM_REQUIRE_FILESYSTEM=1. `test_filesystem_contracts.py`, `test_cli.py` |
+| E-08 | Portable alias model verifies target update and alias preservation. Real symlink test remains required through SNIFFBOM_REQUIRE_FILESYSTEM=1. `test_filesystem_contracts.py`, `test_review_fixes.py` |
+
+The behavior tests were run before implementation: 70 failures and four passes on
+the reviewed source, plus six failures and six passes for the additional Punycode
+policy cases before that correction. Every changed behavior is in CHANGELOG.
+Existing BOCU-1 byte-slicing expectations were replaced with preservation contracts.
+Public names, signatures and defaults remain unchanged.
+
+The eight surviving mutations were each injected into an isolated source copy and
+rerun against the new maintained contracts. All eight failed by assertion, with no
+collection error or timeout:
+
+| Lens-e mutation | First failing contract |
+| --- | --- |
+| M22 | test_strip_always_returns_bytes_when_matching_is_disabled |
+| M37 | test_xmlguess_preserves_supplied_fields |
+| M44 | test_empty_among_never_reads_during_setup |
+| M57 | test_check_remembers_any_marked_file |
+| M61 | test_diagnostic_path_limit_is_exact, length 241 |
+| M62 | test_os_diagnostic_limit_is_exact, length 161 |
+| M64 | test_replaceable_read_only_target_restores_mode |
+| M65 | test_resolved_alias_keeps_alias_and_updates_target |
+
+The original UTF-7 scaling sizes, 349530 through 5592410 bytes, now reject in median
+7.69 to 7.77 ms over five runs each. The largest input no longer requires decoding
+its entire shifted run. Maintained tests assert at most 73728 bytes consumed before
+failure instead of relying on timing thresholds.
+
+The supported-version suite passes on CPython 3.10.22, 3.11.18, 3.12.16, 3.13.18,
+3.14.10 and free-threaded 3.14.10: 530 passed, three skips each. These runs use the
+already provisioned local interpreters. Skips are wheel rebuilding (run separately),
+POSIX modes and real symlinks. The full 3.14.6 gate includes the wheel built from
+sdist, the live 0.2.0 upgrade, both installed CLI entry points, ICU, source references
+and Node.js. All tests use a 300-second timeout and dedicated scratch directories.
+
+Portable filesystem models passed and killed M64/M65. Real POSIX permissions and
+real symlinks cannot run on this Windows account; WSL is not installed. CONTRIBUTING
+requires a POSIX run with SNIFFBOM_REQUIRE_FILESYSTEM=1, which makes either unavailable
+check fail rather than skip. No real POSIX or symlink execution is claimed here.
+
+Evidence is retained in the external certification scratch directory
+`sniffbom-cert/fix-r1`: red.log, punycode-red.log, mutation-results.json, M22/M37/M44/
+M57/M61/M62/M64/M65.log, scaling-results.json and matrix-results.json.
+
+Final round-1 gates, each executed separately on CPython 3.14.6:
+
+| Command | Result |
+| --- | --- |
+| ruff format --check . | exit 0, 42 files |
+| ruff check . | exit 0 |
+| mypy --strict src | exit 0, 11 modules |
+| mypy --strict src tests | exit 0, 35 modules |
+| pytest --timeout=300 | exit 0, 531 passed, two platform skips, 20.00 seconds |
+
+All eleven reference files were fetched again and verified against the manifest
+before this final suite. Its output is retained in `fix-r1/final.log`.
