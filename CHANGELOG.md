@@ -64,6 +64,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- Contracts cover payload-free UTF-16 marks, single-byte BOM prefixes, whitespace
+  before XML marks and literal XML signature case across bytes, bytearray and
+  memoryview inputs. Runtime behavior and the public API are unchanged.
 - Negative contracts reject NUL-prefixed UTF-16 marks in WHATWG BOM sniffing and
   require complete unmarked XML signatures across bytes, bytearray and memoryview
   inputs. Runtime behavior and the public API are unchanged.
