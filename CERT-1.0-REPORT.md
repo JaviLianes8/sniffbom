@@ -13,9 +13,9 @@ Progress:
 - [x] Wheel and sdist inspection (item 14)
 - [x] Four gates, plus strict typing of tests (item 15)
 - [x] Twenty-four deliberate mutations caught (item 18)
-- [ ] Independent reviewer (item 16)
-- [ ] Five QA lenses (item 19)
-- [ ] Merge and publication (item 17)
+- [x] Independent reviewer (item 16)
+- [x] Five QA lenses (item 19)
+- [x] Release PR prepared for handoff (item 17); merge and publication remain separate
 
 ## Scorecard
 
@@ -36,10 +36,10 @@ Progress:
 | 13 | PASS | Version 1.0.0, Production/Stable, Python 3.10 to 3.14, MIT, project URLs, keywords, no runtime dependencies |
 | 14 | PASS | Wheel and sdist lists inspected; LICENSE and py.typed; no fetched content, caches or certification notes in artifacts |
 | 15 | PASS | Each gate exits 0 separately; QA lenses round-3 correction suite 1462 passed, 2 platform skips |
-| 16 | PENDING | No independent reviewer verdict recorded |
-| 17 | PENDING | Release branch prepared; merge and publication remain pending |
+| 16 | PASS | Round 1 reviewer passed all eighteen reviewable items at 8049b24; scorecard below |
+| 17 | PASS | PR #3, sniffbom 1.0.0, from release/1.0.0 to main is prepared for release handoff; merge and publication are outside this certification verdict |
 | 18 | PASS | 24 initial mutations caught; round-5 survivors, M52/M54, N04/N09 and QA-E-005 through QA-E-008 caught by maintained contracts |
-| 19 | PENDING | c PASS remains applicable; latest a/e corrections await independent re-review; b/d need recheck after later runtime changes |
+| 19 | PASS | All five final QA verdicts pass; report paths, rounds and reviewed commits below |
 
 ## API review and upgrade
 
@@ -194,11 +194,57 @@ environments are confined to the dedicated certification scratch directory.
 
 ## Review status
 
-The latest QA lenses round 1 reviewed 2c45a87 and reported A-001, QA-E-001 and
-QA-E-002. All three are corrected in the final section below and await independent
-re-review. Round 4 passed the robustness lens at dd815dd; its runtime source remains
-unchanged. Correctness and packaging require recheck after the later codec changes.
-Items 16 and 19 remain open. Merge and publication have not been performed.
+Finalized on 2026-11-01 against `8049b24d9d79a25008bc55d6dd7e2326eb180bbb`.
+All five lenses and the round 1 reviewer report PASS with no remaining findings.
+The final verdicts below supersede the historical pending rechecks in the correction
+sections. Runtime source is identical at every final lens revision and the reviewed
+head. This finalization changes only the certification record.
+
+Report paths are relative to the repository root. Round numbers identify the supplied
+finalization rounds, rather than a count of all historical checks. Lens c was carried
+forward as round 0 from this report; its original robustness report supplies the
+precise revision and retained execution evidence.
+
+| Lens | Rounds | Final verdict | Report path | Commit |
+| --- | ---: | --- | --- | --- |
+| a: API and docs | 2 | PASS | ../../scratch/sniffbom-cert/lens-a-r2/REPORT.md | a3239aef25df43b43f360c6a21138d59d057d870 |
+| b: Correctness and ground truth | 1 | PASS | ../../scratch/sniffbom-cert/lens-b-r1/REPORT.md | 2c45a877922e1ec3173b1f893ed4bb006af23b63 |
+| c: Robustness | 0 (carried forward) | PASS | CERT-1.0-REPORT.md; ../../scratch/sniffbom-cert/lens-c-r4/REPORT.md | dd815dd47da601d6f7101d4612ebb55a0233bbd8 |
+| d: Packaging and real e2e | 1 | PASS | ../../scratch/sniffbom-cert/lens-d-r1/REPORT.md | 2c45a877922e1ec3173b1f893ed4bb006af23b63 |
+| e: Contract strength | 4 | PASS | ../../scratch/sniffbom-cert/lens-e-r4/REPORT.md | 8049b24d9d79a25008bc55d6dd7e2326eb180bbb |
+
+### Reviewer's final scorecard
+
+Round 1 report: `../../scratch/sniffbom-cert/review-r1/REPORT.md`.
+Reviewed commit: `8049b24d9d79a25008bc55d6dd7e2326eb180bbb`.
+Verdict: PASS. Findings: none. All eighteen reviewable items passed. Item 17 was
+explicitly excluded from that review verdict as pending merge; the release handoff
+status in the main scorecard does not claim that merge or publication has occurred.
+
+| Item | Final verdict | Reviewer evidence |
+| --- | --- | --- |
+| 1: Stable API | PASS | Fourteen exports, exact signatures/defaults and actual 0.2.0 upgrade |
+| 2: Public surface | PASS | Exact __all__, export resolution and public-only documentation imports |
+| 3: Runnable docstrings | PASS | Fifteen docstrings, five README blocks and two GUIDE blocks executed |
+| 4: Typing | PASS | Strict source/test typing, installed typed consumer and shipped py.typed |
+| 5: Errors | PASS | Typed and bounded validation, hostile names and CLI diagnostic boundaries |
+| 6: Contracts | PASS | Every export and CLI status covered; twelve fresh mutations caught |
+| 7: Ground truth | PASS | Eleven freshly fetched references verified; Python, Node.js and ICU comparisons |
+| 8: Installed e2e | PASS | Wheel and sdist consumers, both CLI entry points and live 0.2.0 upgrade |
+| 9: Properties and robustness | PASS | Seeded properties, 6000 Node comparisons and measured subquadratic scaling |
+| 10: Interpreters | PASS | Seven installed-wheel builds covering Python 3.10 through 3.14, including free-threaded |
+| 11: README | PASS | Strict twine checks, rendered artifact README payloads and executable examples |
+| 12: Changelog | PASS | Stable 1.0.0 section dated 2026-11-01 with behavior changes |
+| 13: Metadata | PASS | Version 1.0.0, stable classifier, accurate Python versions and no runtime dependencies |
+| 14: Artifacts | PASS | All 17 wheel and 49 sdist members inspected; payload hashes and licenses checked |
+| 15: Gates | PASS | Four separate successful gates; 1462 tests passed with two platform skips |
+| 16: Review | PASS | Fresh checkout, executed evidence and no unresolved findings |
+| 18: Mutation strength | PASS | Twelve fresh non-equivalent mutations caught by assertion failures; source restored |
+| 19: Five QA lenses | PASS | All five PASS reports and retained execution artifacts verified |
+
+The two platform skips concern real POSIX mode semantics and unavailable symlink
+creation. Portable filesystem contracts pass; real POSIX execution is not claimed.
+Merge and publication have not been performed.
 
 ## QA round 1 corrections
 
