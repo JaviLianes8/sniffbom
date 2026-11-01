@@ -422,7 +422,7 @@ Evidence is retained in `sniffbom-cert/fix-r3`: `red.log`, `green.log`, `c008.lo
 ## QA round 4 corrections
 
 Date: 2026-11-01. Reviewed head: `dd815dd47da601d6f7101d4612ebb55a0233bbd8`.
-Fix commit: `fix qa round four findings` (this change).
+Fix commit: `4a78973307ea11c7425b713a2729c5fe892fc827` (`fix qa round four findings`).
 All three reported findings are addressed; none is disputed. Independent re-review
 of these corrections remains required.
 
@@ -477,4 +477,6 @@ interpreter matrix is claimed for this bounded correction. Every test has a
 
 Evidence is retained in `sniffbom-cert/fix-r4`: `before-mutation-results.json`,
 `after-mutation-results.json`, the `before-*` and `after-*` logs and JUnit reports,
-`fetch.log`, `final-gates.json`, `final-*.log` and `final.xml`.
+`fetch.log`, `final-gates.json`, `final-*.log` and `final.xml`. The gates also pass
+after recording the fix commit; that run is retained as `report-gates.json`,
+`report-*.log` and `report.xml`.
