@@ -35,11 +35,11 @@ Progress:
 | 12 | PASS | CHANGELOG 1.0.0 dated 2026-11-01 |
 | 13 | PASS | Version 1.0.0, Production/Stable, Python 3.10 to 3.14, MIT, project URLs, keywords, no runtime dependencies |
 | 14 | PASS | Wheel and sdist lists inspected; LICENSE and py.typed; no fetched content, caches or certification notes in artifacts |
-| 15 | PASS | Each gate exits 0 separately; round-3 suite 663 passed, 2 platform skips |
+| 15 | PASS | Each gate exits 0 separately; round-4 suite 903 passed, 2 platform skips |
 | 16 | PENDING | No independent reviewer verdict recorded |
 | 17 | PENDING | Release branch prepared; merge and publication remain pending |
-| 18 | PASS | 24 isolated mutations, 24 caught, no survivors; table below |
-| 19 | PENDING | Round 2: a, b and d PASS; round-3 c and e corrections below await independent re-review |
+| 18 | PASS | 24 initial mutations caught; all three round-4 survivors now caught by maintained contracts |
+| 19 | PENDING | Round 2: a, b and d PASS; round 4: c PASS; round-4 e corrections below await independent re-review |
 
 ## API review and upgrade
 
@@ -195,9 +195,9 @@ environments are confined to the dedicated certification scratch directory.
 ## Review status
 
 Round 2 passed the API/docs, correctness and packaging lenses on the reviewed head.
-Round 3 confirmed the earlier robustness and contract-strength fixes and reported
-eight additional findings. Their corrections below await independent re-review;
-items 16 and 19 remain open. Merge and publication have not been performed.
+Round 4 passed the robustness lens and confirmed all seven round-3 contract-strength
+fixes. Its three new contract findings are corrected below and await independent
+re-review. Items 16 and 19 remain open. Merge and publication have not been performed.
 
 ## QA round 1 corrections
 
@@ -353,8 +353,8 @@ Evidence is retained in `sniffbom-cert/fix-r2`: `red.log`, `green.log`,
 
 Date: 2026-11-01. Reviewed head: `6d5ce1f8792261dc352e87c1515b8d87ee126c11`.
 Fix commit: `82a4056afb9ca539e7c0d0ac028089befe08dc24` (`fix qa round three findings`).
-All eight reported findings are addressed; none is disputed. Independent re-review
-of these corrections remains required.
+All eight reported findings are addressed; none is disputed. The round-4 rechecks
+independently confirmed these fixes and reported the additional findings below.
 
 The two round-3 reports, retained under the external certification scratch
 directory as `lens-<letter>-r3/REPORT.md`, record these results for the reviewed head:
@@ -418,3 +418,63 @@ Evidence is retained in `sniffbom-cert/fix-r3`: `red.log`, `green.log`, `c008.lo
 `mutation-results.json`, `baseline.log`, `R07.log`, `R08.log`, `R12.log`, `R14.log`,
 `R15.log`, `R16.log`, `R18.log`, `restored.log`, their JUnit XML reports, `fetch.log`,
 `final.log` and the final gate logs.
+
+## QA round 4 corrections
+
+Date: 2026-11-01. Reviewed head: `dd815dd47da601d6f7101d4612ebb55a0233bbd8`.
+Fix commit: `fix qa round four findings` (this change).
+All three reported findings are addressed; none is disputed. Independent re-review
+of these corrections remains required.
+
+The round-4 reports are retained under the external certification scratch directory
+as `lens-<letter>-r4/REPORT.md`:
+
+| Lens | Verdict | Findings |
+| --- | --- | --- |
+| c: Adversarial and robustness | PASS | C-008 fixed; no new findings |
+| e: Contract strength | FAIL | E-14 through E-20 fixed; new E-21 through E-23 |
+
+| Finding | Correction and maintained evidence |
+| --- | --- |
+| E-21 | Registered names containing U+D7FF invoke the handler and match Python's UTF-8 decoder through bulk and streaming decoding, marked/unmarked input and plain/subclass names. `test_registered_error_handler_names_are_exact` |
+| E-22 | The same contract accepts registered names containing U+E000, pinning both valid boundaries adjacent to the surrogate interval. `test_registered_error_handler_names_are_exact` |
+| E-23 | Leading, interior and trailing surrogates at all four surrogate-range endpoints raise exact bounded LookupError, without retained input or exception chaining. Covers empty, valid and malformed payloads, marked/unmarked input, plain/subclass policy names and both decoders. `test_surrogate_error_policies_raise_bounded_lookup_errors` |
+
+These were missing regression contracts for behavior the implementation already
+provided. Runtime code and the public API remain unchanged. CHANGELOG records the
+new coverage. All 324 policy contract cases pass on the reviewed runtime source.
+
+Each exact S07, S08 and S10 replacement from the reviewer's frozen mutation file was
+applied alone in a scratch source copy. Before the test changes, all three survived
+the 84 existing policy cases. After the changes, all three failed genuine contract
+assertions or expected exception checks, with no collection errors or timeouts:
+
+| Lens-e mutation | Failing contract | Failures |
+| --- | --- | ---: |
+| S07: reject U+D7FF | test_registered_error_handler_names_are_exact, U+D7FF names | 8 |
+| S08: reject U+E000 | test_registered_error_handler_names_are_exact, U+E000 names | 8 |
+| S10: scan only the final character | test_surrogate_error_policies_raise_bounded_lookup_errors, leading and interior positions | 192 |
+
+The clean baseline and byte-for-byte restored source each pass all 324 cases.
+Mutation runs disable bytecode caching and enforce a 300-second per-test timeout.
+
+Round-4 gates, each executed separately on CPython 3.14.6:
+
+| Command | Result |
+| --- | --- |
+| ruff format --check . | exit 0, 44 files |
+| ruff check . | exit 0 |
+| mypy --strict src | exit 0, 11 modules |
+| mypy --strict src tests | exit 0, 37 modules |
+| pytest --timeout=300 | exit 0, 903 passed, two platform skips |
+
+All eleven reference files were fetched again and verified against the manifest.
+The full suite enables ICU, Node.js, wheel-from-sdist installation, both installed
+CLI entry points and the live 0.2.0 upgrade. The existing Windows skips are POSIX
+file modes and real symlink creation; their portable contracts pass. No new
+interpreter matrix is claimed for this bounded correction. Every test has a
+300-second timeout; temporary files and caches stay under certification scratch.
+
+Evidence is retained in `sniffbom-cert/fix-r4`: `before-mutation-results.json`,
+`after-mutation-results.json`, the `before-*` and `after-*` logs and JUnit reports,
+`fetch.log`, `final-gates.json`, `final-*.log` and `final.xml`.

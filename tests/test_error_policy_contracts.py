@@ -32,15 +32,23 @@ def _decode(entry: str, raw: bytes, errors: str) -> str:
 
 
 @pytest.mark.parametrize("entry", ["bulk", "stream"])
-@pytest.mark.parametrize("raw", [b"", b"plain", b"\xef\xbb\xbf", b"\xef\xbb\xbfplain"])
+@pytest.mark.parametrize("prefix", [b"", b"\xef\xbb\xbf"], ids=["unmarked", "marked"])
+@pytest.mark.parametrize("payload", [b"", b"plain", b"\xff"], ids=["empty", "valid", "invalid"])
 @pytest.mark.parametrize("surrogate", ["\ud800", "\udbff", "\udc00", "\udfff"])
+@pytest.mark.parametrize("position", ["leading", "interior", "trailing"])
 @pytest.mark.parametrize("kind", [str, PolicyName])
 def test_surrogate_error_policies_raise_bounded_lookup_errors(
-    entry: str, raw: bytes, surrogate: str, kind: type[str]
+    entry: str, prefix: bytes, payload: bytes, surrogate: str, position: str, kind: type[str]
 ) -> None:
-    policy = kind("PRIVATE" + "x" * 10000 + surrogate)
+    padding = "PRIVATE" + "x" * 10000
+    names = {
+        "leading": surrogate + padding,
+        "interior": padding + surrogate + "_handler",
+        "trailing": padding + surrogate,
+    }
+    policy = kind(names[position])
     with pytest.raises(LookupError) as caught:
-        _decode(entry, raw, policy)
+        _decode(entry, prefix + payload, policy)
     error = caught.value
     assert type(error) is LookupError
     assert error.args == ("unknown encoding or error handler",)
@@ -51,7 +59,15 @@ def test_surrogate_error_policies_raise_bounded_lookup_errors(
 
 @pytest.mark.parametrize("entry", ["bulk", "stream"])
 @pytest.mark.parametrize("prefix", [b"", b"\xef\xbb\xbf"], ids=["unmarked", "marked"])
-@pytest.mark.parametrize("name", ["SniffbomMixedCaseHandler", " sniffbom_spaced_handler "])
+@pytest.mark.parametrize(
+    "name",
+    [
+        "SniffbomMixedCaseHandler",
+        " sniffbom_spaced_handler ",
+        "sniffbom_\ud7ff_handler",
+        "sniffbom_\ue000_handler",
+    ],
+)
 @pytest.mark.parametrize("kind", [str, PolicyName])
 def test_registered_error_handler_names_are_exact(
     entry: str, prefix: bytes, name: str, kind: type[str]
@@ -64,7 +80,12 @@ def test_registered_error_handler_names_are_exact(
         return "[handled]", error.end
 
     codecs.register_error(name, handler)
-    assert _decode(entry, prefix + b"a\xffb", kind(name)) == "a[handled]b"
+    payload = b"a\xffb"
+    expected = payload.decode("utf-8", name)
+    assert expected == "a[handled]b"
+    assert calls == [b"\xff"]
+    calls.clear()
+    assert _decode(entry, prefix + payload, kind(name)) == expected
     assert calls == [b"\xff"]
 
 

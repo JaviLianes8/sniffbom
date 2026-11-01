@@ -64,6 +64,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- Regression contracts for registered error-handler names containing U+D7FF and
+  U+E000, and bounded surrogate rejection at every position in error-policy names,
+  through bulk and streaming decoding with marked input and string subclasses.
 - Runnable API examples, a guide with upgrade notes, complete input contracts,
   seeded properties, source provenance checks and installed-wheel upgrade coverage.
 
