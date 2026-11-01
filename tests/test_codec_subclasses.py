@@ -41,7 +41,9 @@ def _decode(entry: str, raw: bytes, codec: str, errors: str = "replace") -> str:
 
 
 @pytest.mark.parametrize("entry", ["bulk", "whatwg", "stream"])
-@pytest.mark.parametrize("name", ["\ud800", "PRIVATE" * 10000 + "\udfff"])
+@pytest.mark.parametrize(
+    "name", ["\ud800", "PRIVATE" * 10000 + "\udfff"], ids=["lone-high", "long-low"]
+)
 def test_subclass_surrogate_names_raise_bounded_lookup_errors(entry: str, name: str) -> None:
     with pytest.raises(LookupError, match=r"^unknown encoding or error handler$"):
         _decode(entry, b"", HiddenName(name))

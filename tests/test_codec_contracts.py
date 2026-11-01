@@ -19,7 +19,11 @@ def _decode(entry: str, raw: bytes, codec: str, errors: str = "replace") -> str:
 
 
 @pytest.mark.parametrize("entry", ["bulk", "whatwg", "stream"])
-@pytest.mark.parametrize("codec", ["\ud800", "\udfff", "PRIVATE" * 10000 + "\ud800"])
+@pytest.mark.parametrize(
+    "codec",
+    ["\ud800", "\udfff", "PRIVATE" * 10000 + "\ud800"],
+    ids=["lone-high", "lone-low", "long-high"],
+)
 def test_surrogate_codec_names_raise_bounded_lookup_errors(entry: str, codec: str) -> None:
     with pytest.raises(LookupError) as caught:
         _decode(entry, b"", codec)
@@ -71,7 +75,7 @@ class UntrustedName(str):
         return str(self)
 
 
-@pytest.mark.parametrize("value", ["PRIVATE" * 10000, "scsu"])
+@pytest.mark.parametrize("value", ["PRIVATE" * 10000, "scsu"], ids=["long", "scsu"])
 def test_unsupported_diagnostics_use_only_canonical_names(value: str) -> None:
     error = UnsupportedBomError(UntrustedName(value))
     assert len(str(error)) < 100
